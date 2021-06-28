@@ -56,6 +56,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
@@ -112,6 +114,36 @@ public class DebugActivity extends AbstractGBActivity {
         }
     }
 
+
+
+
+    private void vibration_timer(int period, final int time){
+        final Timer timer = new Timer();
+        TimerTask Task = new TimerTask() {
+            int cnt = 0;
+
+            @Override
+            public void run() {
+                if(cnt%2==0) {
+                    NotificationSpec notificationSpec = new NotificationSpec();
+                    String testString = editContent.getText().toString();
+                    notificationSpec.phoneNumber = "vibration";
+                    notificationSpec.body = null;
+                    notificationSpec.sender = "vibration";
+                    notificationSpec.subject = null;
+                    notificationSpec.type = NotificationType.values()[sendTypeSpinner.getSelectedItemPosition()];
+                    notificationSpec.pebbleColor = notificationSpec.type.color;
+                    GBApplication.deviceService().onNotification(notificationSpec);
+                }
+
+                if(cnt++>=time*2){
+                    timer.cancel();
+                }
+            }
+        };
+        timer.schedule(Task,0,period*500);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -132,6 +164,8 @@ public class DebugActivity extends AbstractGBActivity {
         ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, spinnerArray);
         sendTypeSpinner = findViewById(R.id.sendTypeSpinner);
         sendTypeSpinner.setAdapter(spinnerArrayAdapter);
+
+
 
         Button sendButton = findViewById(R.id.sendButton);
         sendButton.setOnClickListener(new View.OnClickListener() {
@@ -291,6 +325,15 @@ public class DebugActivity extends AbstractGBActivity {
                 GBApplication.deviceService().onSetMusicState(stateSpec);
             }
         });
+
+        Button vibration = findViewById(R.id.vibration);
+        vibration.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                vibration_timer(3,3);
+            }
+        });
+
 
         Button setTimeButton = findViewById(R.id.setTimeButton);
         setTimeButton.setOnClickListener(new View.OnClickListener() {
