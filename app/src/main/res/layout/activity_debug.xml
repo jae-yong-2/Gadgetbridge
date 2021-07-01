@@ -59,7 +59,7 @@
                 android:layout_height="wrap_content"
                 grid:layout_columnSpan="2"
                 grid:layout_gravity="fill_horizontal"
-                android:text="vibration" />
+                android:text="vibration test" />
 
             <Button
                 android:id="@+id/sendButton"

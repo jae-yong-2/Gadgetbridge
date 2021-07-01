@@ -13,8 +13,8 @@ tasks.withType(Test) {
 android {
     compileOptions {
         // for KitKat
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
     compileSdkVersion 29
     buildToolsVersion '30.0.2'
