@@ -82,7 +82,6 @@ public class DebugActivity extends AbstractGBActivity {
     private static final Logger LOG = LoggerFactory.getLogger(DebugActivity.class);
 
     private int temp_ = 0;
-    private boolean flag = false;
 
     private static final String EXTRA_REPLY = "reply";
     private static final String ACTION_REPLY
@@ -110,12 +109,8 @@ public class DebugActivity extends AbstractGBActivity {
     private Spinner sendTypeSpinner;
     private EditText editContent;
 
-//    private void handleRealtimeSample(Serializable extra) {
-//        if (extra instanceof ActivitySample) {
-//            ActivitySample sample = (ActivitySample) extra;
-//            GB.toast(this, "Heart Rate measured: " + sample.getHeartRate(), Toast.LENGTH_LONG, GB.INFO);
-//        }
-//    }
+    private Thread thread_b;
+//    private Thread thread_a;
 
     private int handleRealtimeSample(Serializable extra) {
         int t = 0;
@@ -124,73 +119,62 @@ public class DebugActivity extends AbstractGBActivity {
             ActivitySample sample = (ActivitySample) extra;
             t = sample.getHeartRate();
             GB.toast(this, "Heart Rate measured: " + t, Toast.LENGTH_LONG, GB.INFO);
-            flag = true;
-        }
 
+            synchronized (thread_b) {
+                thread_b.notify();
+            }
+        }
         return t;
     }
 
-    private void test() {
-        int count = 0;
+    private void vibe_thread() {
+        thread_b = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (this) {
+                    GBApplication.deviceService().onHeartRateTest();
+                }
+            }
+        });
+
         Thread thread_a = new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                if (temp_ > 60) {
-                    CallSpec callSpec = new CallSpec();
-                    callSpec.command = CallSpec.CALL_INCOMING;
-                    callSpec.number = editContent.getText().toString();
-                    GBApplication.deviceService().onSetCallState(callSpec);
-                    temp_ = 0;
+                thread_b.start();
+                synchronized (thread_b) {
+                    try {
+                        GB.toast("thread waiting", Toast.LENGTH_LONG, GB.INFO);
+                        thread_b.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    if (temp_ > 70) {
+                        CallSpec callSpec = new CallSpec();
+                        callSpec.command = CallSpec.CALL_INCOMING;
+                        callSpec.number = editContent.getText().toString();
+                        GBApplication.deviceService().onSetCallState(callSpec);
+                    }
+
+//                    this.notify();
                 }
             }
         });
-
-        Thread thread_b = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                GBApplication.deviceService().onHeartRateTest();
-                if(flag){
-                    notifyAll();
-                }
-            }
-        });
-
-        thread_b.start();
         thread_a.start();
-
-
-
-//        GB.toast(this,temp_+"",Toast.LENGTH_LONG, GB.INFO);
-
-//        new Thread(() -> {
-//            if (temp_ > 60) {
-//                CallSpec callSpec = new CallSpec();
-//                callSpec.command = CallSpec.CALL_INCOMING;
-//                callSpec.number = editContent.getText().toString();
-//                GBApplication.deviceService().onSetCallState(callSpec);
-//                temp_ = 0;
-//            }
-//        }).start();
-
-
     }
-//        while(count < 10){
-//            GBApplication.deviceService().onHeartRateTest();
-//            if (temp_ > 70){
-//                CallSpec callSpec = new CallSpec();
-//                callSpec.command = CallSpec.CALL_INCOMING;
-//                callSpec.number = editContent.getText().toString();
-//                GBApplication.deviceService().onSetCallState(callSpec);
+
+    private void test() {
+        vibe_thread();
+//        synchronized (thread_a) {
+//            try {
+//                thread_a.wait();
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
 //            }
 //
+//            GB.toast("thread work done", Toast.LENGTH_LONG, GB.INFO);
 //        }
-//    }
 
+    }
 
     // period -> 기간, time -> 횟수
     private void vibration_timer(int period, final int time) {
