@@ -81,7 +81,7 @@ import static nodomain.freeyourgadget.gadgetbridge.util.GB.NOTIFICATION_CHANNEL_
 public class DebugActivity extends AbstractGBActivity {
     private static final Logger LOG = LoggerFactory.getLogger(DebugActivity.class);
 
-    private int temp_ = 0;
+    private int heartRate = 0;  //
 
     private static final String EXTRA_REPLY = "reply";
     private static final String ACTION_REPLY
@@ -98,7 +98,7 @@ public class DebugActivity extends AbstractGBActivity {
                     break;
                 }
                 case DeviceService.ACTION_REALTIME_SAMPLES:
-                    temp_ = handleRealtimeSample(intent.getSerializableExtra(DeviceService.EXTRA_REALTIME_SAMPLE));
+                    heartRate = handleRealtimeSample(intent.getSerializableExtra(DeviceService.EXTRA_REALTIME_SAMPLE));
                     break;
                 default:
                     LOG.info("ignoring intent action " + intent.getAction());
@@ -109,19 +109,19 @@ public class DebugActivity extends AbstractGBActivity {
     private Spinner sendTypeSpinner;
     private EditText editContent;
 
-    private Thread thread_b;
+    private Thread thread_b;        // 심박 수 받아오는 쓰레드
 //    private Thread thread_a;
 
-    private int handleRealtimeSample(Serializable extra) {
-        int t = 0;
+    private int handleRealtimeSample(Serializable extra) {  // void -> int 형으로 변환
+        int t = 0;  // 심박수 저장
 
         if (extra instanceof ActivitySample) {
             ActivitySample sample = (ActivitySample) extra;
-            t = sample.getHeartRate();
+            t = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
             GB.toast(this, "Heart Rate measured: " + t, Toast.LENGTH_LONG, GB.INFO);
 
             synchronized (thread_b) {
-                thread_b.notify();
+                thread_b.notify();  // 쓰레드 notify, wait상태인 thread_a 깨움
             }
         }
         return t;
@@ -132,6 +132,7 @@ public class DebugActivity extends AbstractGBActivity {
             @Override
             public void run() {
                 synchronized (this) {
+                    // 심박수 받아옴
                     GBApplication.deviceService().onHeartRateTest();
                 }
             }
@@ -140,15 +141,16 @@ public class DebugActivity extends AbstractGBActivity {
         Thread thread_a = new Thread(new Runnable() {
             @Override
             public void run() {
-                thread_b.start();
+                thread_b.start();   // 심박수 측정 시작
                 synchronized (thread_b) {
                     try {
                         GB.toast("thread waiting", Toast.LENGTH_LONG, GB.INFO);
-                        thread_b.wait();
+                        thread_b.wait(); // 쓰레드 wait
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    if (temp_ > 70) {
+                    // notify 이후의 행위
+                    if (heartRate > 70) {
                         CallSpec callSpec = new CallSpec();
                         callSpec.command = CallSpec.CALL_INCOMING;
                         callSpec.number = editContent.getText().toString();
@@ -159,21 +161,12 @@ public class DebugActivity extends AbstractGBActivity {
                 }
             }
         });
+
         thread_a.start();
     }
 
     private void test() {
         vibe_thread();
-//        synchronized (thread_a) {
-//            try {
-//                thread_a.wait();
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//
-//            GB.toast("thread work done", Toast.LENGTH_LONG, GB.INFO);
-//        }
-
     }
 
     // period -> 기간, time -> 횟수
