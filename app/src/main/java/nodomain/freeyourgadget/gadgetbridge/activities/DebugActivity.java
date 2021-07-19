@@ -1,19 +1,15 @@
 /*  Copyright (C) 2015-2020 Andreas Shimokawa, Carsten Pfeiffer, Daniele
     Gobbetti, Frank Slezak, ivanovlev, Kasha, Lem Dulfo, Pavel Elagin, Steffen
     Liebergeld, vanous
-
     This file is part of Gadgetbridge.
-
     Gadgetbridge is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published
     by the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-
     Gadgetbridge is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Affero General Public License for more details.
-
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.activities;
@@ -62,6 +58,7 @@ import java.util.TimerTask;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.Widget;
+import nodomain.freeyourgadget.gadgetbridge.devices.miband.VibrationProfile;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivitySample;
 import nodomain.freeyourgadget.gadgetbridge.model.CallSpec;
@@ -74,6 +71,8 @@ import nodomain.freeyourgadget.gadgetbridge.model.RecordedDataTypes;
 import nodomain.freeyourgadget.gadgetbridge.service.serial.GBDeviceProtocol;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.WidgetPreferenceStorage;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.amazfitgts2.AmazfitGTS2MiniSupport;
+
 
 import static android.content.Intent.EXTRA_SUBJECT;
 import static nodomain.freeyourgadget.gadgetbridge.util.GB.NOTIFICATION_CHANNEL_ID;
@@ -99,6 +98,7 @@ public class DebugActivity extends AbstractGBActivity {
                 }
                 case DeviceService.ACTION_REALTIME_SAMPLES:
                     heartRate = handleRealtimeSample(intent.getSerializableExtra(DeviceService.EXTRA_REALTIME_SAMPLE));
+//                    GB.toast("Heart Rate :" + heartRate, Toast.LENGTH_SHORT, GB.INFO);
                     break;
                 default:
                     LOG.info("ignoring intent action " + intent.getAction());
@@ -118,7 +118,7 @@ public class DebugActivity extends AbstractGBActivity {
         if (extra instanceof ActivitySample) {
             ActivitySample sample = (ActivitySample) extra;
             t = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
-            GB.toast(this, "Heart Rate measured: " + t, Toast.LENGTH_LONG, GB.INFO);
+            GB.toast(this, "Heart Rate measured from sample: " + t, Toast.LENGTH_LONG, GB.INFO);
 
             synchronized (thread_b) {
                 thread_b.notify();  // 쓰레드 notify, wait상태인 thread_a 깨움
@@ -150,12 +150,13 @@ public class DebugActivity extends AbstractGBActivity {
                         e.printStackTrace();
                     }
                     // notify 이후의 행위
-                    if (heartRate > 70) {
-                        CallSpec callSpec = new CallSpec();
-                        callSpec.command = CallSpec.CALL_INCOMING;
-                        callSpec.number = editContent.getText().toString();
-                        GBApplication.deviceService().onSetCallState(callSpec);
-                    }
+//                    if (heartRate > 70) {
+//                        CallSpec callSpec = new CallSpec();
+//                        callSpec.command = CallSpec.CALL_INCOMING;
+//                        callSpec.number = editContent.getText().toString();
+//                        GBApplication.deviceService().onSetCallState(callSpec);
+//                    }
+                    GB.toast("thread wake", Toast.LENGTH_LONG, GB.INFO);
 
 //                    this.notify();
                 }
@@ -224,6 +225,9 @@ public class DebugActivity extends AbstractGBActivity {
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+//                VibrationProfile.getProfile("short", (short) 3);
+
+
                 NotificationSpec notificationSpec = new NotificationSpec();
                 String testString = editContent.getText().toString();
                 notificationSpec.phoneNumber = testString;
@@ -316,6 +320,7 @@ public class DebugActivity extends AbstractGBActivity {
             public void onClick(View v) {
                 GB.toast("Measuring heart rate, please wait...", Toast.LENGTH_LONG, GB.INFO);
                 GBApplication.deviceService().onHeartRateTest();
+//                new AmazfitGTS2MiniSupport().onEnableRealtimeHeartRateMeasurement(true);
             }
         });
 

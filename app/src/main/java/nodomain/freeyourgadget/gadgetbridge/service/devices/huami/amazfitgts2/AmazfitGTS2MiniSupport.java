@@ -17,13 +17,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.service.devices.huami.amazfitgts2;
 
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
 import android.net.Uri;
+import android.widget.Toast;
 
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import nodomain.freeyourgadget.gadgetbridge.devices.huami.HuamiFWHelper;
 import nodomain.freeyourgadget.gadgetbridge.devices.huami.amazfitgts2.AmazfitGTS2MiniFWHelper;
+import nodomain.freeyourgadget.gadgetbridge.devices.miband.MiBandService;
+import nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic;
+import nodomain.freeyourgadget.gadgetbridge.service.btle.TransactionBuilder;
+import nodomain.freeyourgadget.gadgetbridge.util.GB;
 
 public class AmazfitGTS2MiniSupport extends AmazfitGTS2Support {
 
