@@ -59,6 +59,8 @@ import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.Widget;
 import nodomain.freeyourgadget.gadgetbridge.devices.miband.VibrationProfile;
+import nodomain.freeyourgadget.gadgetbridge.devices.pebble.PebbleColor;
+import nodomain.freeyourgadget.gadgetbridge.devices.pebble.PebbleIconID;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivitySample;
 import nodomain.freeyourgadget.gadgetbridge.model.CallSpec;
@@ -225,8 +227,6 @@ public class DebugActivity extends AbstractGBActivity {
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                VibrationProfile.getProfile("short", (short) 3);
-
 
                 NotificationSpec notificationSpec = new NotificationSpec();
                 String testString = editContent.getText().toString();
@@ -396,10 +396,15 @@ public class DebugActivity extends AbstractGBActivity {
 //                //                vibration_timer(3,3);
 //            }
 //        });
+
+
         vibration.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                test();
+//                test();
+                NotificationSpec spec = new NotificationSpec();
+//                spec.type = new NotificationType(1, (byte)0x01 );
+                GBApplication.deviceService().onNotification(spec);
             }
         });
 

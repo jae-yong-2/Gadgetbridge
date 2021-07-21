@@ -120,6 +120,7 @@ import nodomain.freeyourgadget.gadgetbridge.service.btle.BLETypeConversions;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.BtLEAction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.GattService;
+import nodomain.freeyourgadget.gadgetbridge.service.btle.Transaction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.TransactionBuilder;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.actions.AbortTransactionAction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.actions.ConditionalWriteAction;
@@ -263,13 +264,11 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             byte authFlags = getAuthFlags();
             byte cryptFlags = getCryptFlags();
             heartRateNotifyEnabled = false;
-//            heartRateNotifyEnabled = true;  // changed to false -> true
             boolean authenticate = needsAuth && (cryptFlags == 0x00);
             needsAuth = false;
             new InitOperation(authenticate, authFlags, cryptFlags, this, builder).perform();
             characteristicHRControlPoint = getCharacteristic(GattCharacteristic.UUID_CHARACTERISTIC_HEART_RATE_CONTROL_POINT);
             characteristicChunked = getCharacteristic(HuamiService.UUID_CHARACTERISTIC_CHUNKEDTRANSFER);
-//            setEnableRealtimeHeartRateMeasurementBySeconds();
             GB.toast(getContext(), "Initializing Huami device", Toast.LENGTH_SHORT, GB.INFO);
         } catch (IOException e) {
             GB.toast(getContext(), "Initializing Huami device failed", Toast.LENGTH_SHORT, GB.ERROR, e);
@@ -608,7 +607,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
     private HuamiSupport setHeartrateMeasurementInterval(TransactionBuilder builder, int minutes) {
         if (characteristicHRControlPoint != null) {
 
-            GB.toast(getContext(), "setHeartrateMeasurementInterval:" + minutes, Toast.LENGTH_SHORT, GB.INFO);
+//            GB.toast(getContext(), "setHeartrateMeasurementInterval:" + minutes, Toast.LENGTH_SHORT, GB.INFO);
 
             builder.notify(characteristicHRControlPoint, true);
             LOG.info("Setting heart rate measurement interval to " + minutes + " minutes");
@@ -641,6 +640,25 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             builder.queue(getQueue());
         } catch (IOException ex) {
             LOG.error("Unable to send notification to device", ex);
+        }
+    }
+
+    // added for custom design vibration with notification
+    private void customNotification(){
+        try{
+            GB.toast(getContext(), "notified", Toast.LENGTH_SHORT, GB.INFO);
+            TransactionBuilder builder = performInitialized("Send custom vibration with notification");
+            Prefs prefs = GBApplication.getPrefs();
+            Context CONTEXT = GBApplication.getContext();
+            short vibrationTimes = 1;
+            VibrationProfile profile = VibrationProfile.getProfile(CONTEXT.getString(R.string.p_medium), vibrationTimes);
+            profile.setAlertLevel(2);   // medium level
+
+//            performPreferredNotification("alarm clock ringing", MiBandConst.ORIGIN_ALARM_CLOCK, null, HuamiService.ALERT_LEVEL_VIBRATE_ONLY, null);
+            getNotificationStrategy().sendCustomNotification(profile, null, 0, 0, 0, 0,null,builder);
+            builder.queue(getQueue());
+        }catch (IOException ex){
+            GB.toast(getContext(), "exception occured", Toast.LENGTH_SHORT, GB.INFO);
         }
     }
 
@@ -1102,19 +1120,18 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                             } else {
                                 previousHRval[0] = HRval[0];
                             }
-
-                            if (temp % 3 == 0) {
-//                                vibrateOnce();
-//                                performPreferredNotification("custom vibration", );
-                            }
-//                            temp++;
                             GB.toast(getContext(), "measured:" + realtimeSamplesSupport.getHeartrateBpm(), Toast.LENGTH_LONG, GB.INFO);
-//                            exportDB();
+
+                            if (realtimeSamplesSupport.getHeartrateBpm() > 60){
+//                                vibrateOnce();
+//                                customNotification();
+//                                onNotification(new NotificationSpec());
+                            }
 
                         } catch (IOException e) {
                         }
                     }
-                }, 1000 * 10, 1000);
+                }, 1000 * 10 , 1000);
                 // Start after 10 seconds, repeat each second
             } else {
                 builder.write(characteristicHRControlPoint, stopHeartMeasurementContinuous);
