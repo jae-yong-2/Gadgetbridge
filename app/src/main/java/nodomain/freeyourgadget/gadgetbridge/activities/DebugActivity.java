@@ -37,6 +37,7 @@ import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.core.app.NavUtils;
@@ -75,11 +76,16 @@ import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.WidgetPreferenceStorage;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.amazfitgts2.AmazfitGTS2MiniSupport;
 
+import nodomain.freeyourgadget.gadgetbridge.service.devices.miband.RealtimeSamplesSupport;
+
+
 
 import static android.content.Intent.EXTRA_SUBJECT;
 import static nodomain.freeyourgadget.gadgetbridge.util.GB.NOTIFICATION_CHANNEL_ID;
 
 public class DebugActivity extends AbstractGBActivity {
+
+
     private static final Logger LOG = LoggerFactory.getLogger(DebugActivity.class);
 
     private int heartRate = 0;  //
@@ -108,11 +114,13 @@ public class DebugActivity extends AbstractGBActivity {
             }
         }
     };
+
+
     private Spinner sendTypeSpinner;
     private EditText editContent;
 
     private Thread thread_b;        // 심박 수 받아오는 쓰레드
-//    private Thread thread_a;
+    private Thread thread_a;
 
     private int handleRealtimeSample(Serializable extra) {  // void -> int 형으로 변환
         int t = 0;  // 심박수 저장
@@ -122,84 +130,84 @@ public class DebugActivity extends AbstractGBActivity {
             t = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
             GB.toast(this, "Heart Rate measured from sample: " + t, Toast.LENGTH_LONG, GB.INFO);
 
-            synchronized (thread_b) {
-                thread_b.notify();  // 쓰레드 notify, wait상태인 thread_a 깨움
-            }
+//            synchronized (thread_b) {
+//                thread_b.notify();  // 쓰레드 notify, wait상태인 thread_a 깨움
+//            }
         }
         return t;
     }
 
-    private void vibe_thread() {
-        thread_b = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (this) {
-                    // 심박수 받아옴
-                    GBApplication.deviceService().onHeartRateTest();
-                }
-            }
-        });
-
-        Thread thread_a = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                thread_b.start();   // 심박수 측정 시작
-                synchronized (thread_b) {
-                    try {
-                        GB.toast("thread waiting", Toast.LENGTH_LONG, GB.INFO);
-                        thread_b.wait(); // 쓰레드 wait
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    // notify 이후의 행위
-//                    if (heartRate > 70) {
-//                        CallSpec callSpec = new CallSpec();
-//                        callSpec.command = CallSpec.CALL_INCOMING;
-//                        callSpec.number = editContent.getText().toString();
-//                        GBApplication.deviceService().onSetCallState(callSpec);
+//    private void vibe_thread() {
+//        thread_b = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                synchronized (this) {
+//                    // 심박수 받아옴
+//                    GBApplication.deviceService().onHeartRateTest();
+//                }
+//            }
+//        });
+//
+//        Thread thread_a = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                thread_b.start();   // 심박수 측정 시작
+//                synchronized (thread_b) {
+//                    try {
+//                        GB.toast("thread waiting", Toast.LENGTH_LONG, GB.INFO);
+//                        thread_b.wait(); // 쓰레드 wait
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
 //                    }
-                    GB.toast("thread wake", Toast.LENGTH_LONG, GB.INFO);
-
-//                    this.notify();
-                }
-            }
-        });
-
-        thread_a.start();
-    }
-
-    private void test() {
-        vibe_thread();
-    }
-
-    // period -> 기간, time -> 횟수
-    private void vibration_timer(int period, final int time) {
-        final Timer timer = new Timer();
-        TimerTask Task = new TimerTask() {
-            int cnt = 0;
-
-            @Override
-            public void run() {
-                // message
-                if (cnt % 2 == 0) {
-                    NotificationSpec notificationSpec = new NotificationSpec();
-                    String testString = editContent.getText().toString();
-                    notificationSpec.phoneNumber = "vibration";
-                    notificationSpec.body = null;
-                    notificationSpec.sender = "vibration";
-                    notificationSpec.subject = null;
-                    notificationSpec.type = NotificationType.values()[sendTypeSpinner.getSelectedItemPosition()];
-                    notificationSpec.pebbleColor = notificationSpec.type.color;
-                    GBApplication.deviceService().onNotification(notificationSpec);
-                }
-
-                if (cnt++ >= time * 2) {
-                    timer.cancel();
-                }
-            }
-        };
-        timer.schedule(Task, 0, period * 500);  // 0.5초 run() 실행
-    }
+//                    // notify 이후의 행위
+////                    if (heartRate > 70) {
+////                        CallSpec callSpec = new CallSpec();
+////                        callSpec.command = CallSpec.CALL_INCOMING;
+////                        callSpec.number = editContent.getText().toString();
+////                        GBApplication.deviceService().onSetCallState(callSpec);
+////                    }
+//                    GB.toast("thread wake", Toast.LENGTH_LONG, GB.INFO);
+//
+////                    this.notify();
+//                }
+//            }
+//        });
+//
+//        thread_a.start();
+//    }
+//
+//    private void test() {
+//        vibe_thread();
+//    }
+//
+//    // period -> 기간, time -> 횟수
+//    private void vibration_timer(int period, final int time) {
+//        final Timer timer = new Timer();
+//        TimerTask Task = new TimerTask() {
+//            int cnt = 0;
+//
+//            @Override
+//            public void run() {
+//                // message
+//                if (cnt % 2 == 0) {
+//                    NotificationSpec notificationSpec = new NotificationSpec();
+//                    String testString = editContent.getText().toString();
+//                    notificationSpec.phoneNumber = "vibration";
+//                    notificationSpec.body = null;
+//                    notificationSpec.sender = "vibration";
+//                    notificationSpec.subject = null;
+//                    notificationSpec.type = NotificationType.values()[sendTypeSpinner.getSelectedItemPosition()];
+//                    notificationSpec.pebbleColor = notificationSpec.type.color;
+//                    GBApplication.deviceService().onNotification(notificationSpec);
+//                }
+//
+//                if (cnt++ >= time * 2) {
+//                    timer.cancel();
+//                }
+//            }
+//        };
+//        timer.schedule(Task, 0, period * 500);  // 0.5초 run() 실행
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -212,297 +220,299 @@ public class DebugActivity extends AbstractGBActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(mReceiver, filter);
         registerReceiver(mReceiver, filter); // for ACTION_REPLY
 
-        editContent = findViewById(R.id.editContent);
+//        editContent = findViewById(R.id.editContent);
 
-        ArrayList<String> spinnerArray = new ArrayList<>();
-        for (NotificationType notificationType : NotificationType.values()) {
-            spinnerArray.add(notificationType.name());
-        }
-        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, spinnerArray);
-        sendTypeSpinner = findViewById(R.id.sendTypeSpinner);
-        sendTypeSpinner.setAdapter(spinnerArrayAdapter);
-
-
-        Button sendButton = findViewById(R.id.sendButton);
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                NotificationSpec notificationSpec = new NotificationSpec();
-                String testString = editContent.getText().toString();
-                notificationSpec.phoneNumber = testString;
-                notificationSpec.body = testString;
-                notificationSpec.sender = testString;
-                notificationSpec.subject = testString;
-                notificationSpec.type = NotificationType.values()[sendTypeSpinner.getSelectedItemPosition()];
-                notificationSpec.pebbleColor = notificationSpec.type.color;
-                GBApplication.deviceService().onNotification(notificationSpec);
-            }
-        });
-
-        Button incomingCallButton = findViewById(R.id.incomingCallButton);
-        incomingCallButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                CallSpec callSpec = new CallSpec();
-                callSpec.command = CallSpec.CALL_INCOMING;
-                callSpec.number = editContent.getText().toString();
-                GBApplication.deviceService().onSetCallState(callSpec);
-
-            }
-        });
+//        ArrayList<String> spinnerArray = new ArrayList<>();
+//        for (NotificationType notificationType : NotificationType.values()) {
+//            spinnerArray.add(notificationType.name());
+//        }
+//        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, spinnerArray);
+//        sendTypeSpinner = findViewById(R.id.sendTypeSpinner);
+//        sendTypeSpinner.setAdapter(spinnerArrayAdapter);
 
 
-        Button outgoingCallButton = findViewById(R.id.outgoingCallButton);
-        outgoingCallButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                CallSpec callSpec = new CallSpec();
-                callSpec.command = CallSpec.CALL_OUTGOING;
-                callSpec.number = editContent.getText().toString();
-                GBApplication.deviceService().onSetCallState(callSpec);
-            }
-        });
-
-        Button startCallButton = findViewById(R.id.startCallButton);
-        startCallButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                CallSpec callSpec = new CallSpec();
-                callSpec.command = CallSpec.CALL_START;
-                GBApplication.deviceService().onSetCallState(callSpec);
-            }
-        });
-        Button endCallButton = findViewById(R.id.endCallButton);
-        endCallButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                CallSpec callSpec = new CallSpec();
-                callSpec.command = CallSpec.CALL_END;
-                GBApplication.deviceService().onSetCallState(callSpec);
-            }
-        });
-
-        Button rebootButton = findViewById(R.id.rebootButton);
-        rebootButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                GBApplication.deviceService().onReset(GBDeviceProtocol.RESET_FLAGS_REBOOT);
-            }
-        });
-
-        Button factoryResetButton = findViewById(R.id.factoryResetButton);
-        factoryResetButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new AlertDialog.Builder(DebugActivity.this)
-                        .setCancelable(true)
-                        .setTitle(R.string.debugactivity_really_factoryreset_title)
-                        .setMessage(R.string.debugactivity_really_factoryreset)
-                        .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                GBApplication.deviceService().onReset(GBDeviceProtocol.RESET_FLAGS_FACTORY_RESET);
-                            }
-                        })
-                        .setNegativeButton(R.string.Cancel, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                            }
-                        })
-                        .show();
-            }
-        });
-
-        Button heartRateButton = findViewById(R.id.HeartRateButton);
-        heartRateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                GB.toast("Measuring heart rate, please wait...", Toast.LENGTH_LONG, GB.INFO);
-                GBApplication.deviceService().onHeartRateTest();
-//                new AmazfitGTS2MiniSupport().onEnableRealtimeHeartRateMeasurement(true);
-            }
-        });
-
-        Button setFetchTimeButton = findViewById(R.id.SetFetchTimeButton);
-        setFetchTimeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                final Calendar currentDate = Calendar.getInstance();
-                Context context = getApplicationContext();
-
-                if (context instanceof GBApplication) {
-                    GBApplication gbApp = (GBApplication) context;
-                    final GBDevice device = gbApp.getDeviceManager().getSelectedDevice();
-                    if (device != null) {
-                        new DatePickerDialog(DebugActivity.this, new DatePickerDialog.OnDateSetListener() {
-                            @Override
-                            public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                                Calendar date = Calendar.getInstance();
-                                date.set(year, monthOfYear, dayOfMonth);
-
-                                long timestamp = date.getTimeInMillis() - 1000;
-                                GB.toast("Setting lastSyncTimeMillis: " + timestamp, Toast.LENGTH_LONG, GB.INFO);
-
-                                SharedPreferences.Editor editor = GBApplication.getDeviceSpecificSharedPrefs(device.getAddress()).edit();
-                                editor.remove("lastSyncTimeMillis"); //FIXME: key reconstruction is BAD
-                                editor.putLong("lastSyncTimeMillis", timestamp);
-                                editor.apply();
-                            }
-                        }, currentDate.get(Calendar.YEAR), currentDate.get(Calendar.MONTH), currentDate.get(Calendar.DATE)).show();
-                    } else {
-                        GB.toast("Device not selected/connected", Toast.LENGTH_LONG, GB.INFO);
-                    }
-                }
-
-
-            }
-        });
-
-
-        Button setMusicInfoButton = findViewById(R.id.setMusicInfoButton);
-        setMusicInfoButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MusicSpec musicSpec = new MusicSpec();
-                String testString = editContent.getText().toString();
-                musicSpec.artist = testString + "(artist)";
-                musicSpec.album = testString + "(album)";
-                musicSpec.track = testString + "(track)";
-                musicSpec.duration = 10;
-                musicSpec.trackCount = 5;
-                musicSpec.trackNr = 2;
-
-                GBApplication.deviceService().onSetMusicInfo(musicSpec);
-
-                MusicStateSpec stateSpec = new MusicStateSpec();
-                stateSpec.position = 0;
-                stateSpec.state = 0x01; // playing
-                stateSpec.playRate = 100;
-                stateSpec.repeat = 1;
-                stateSpec.shuffle = 1;
-
-                GBApplication.deviceService().onSetMusicState(stateSpec);
-            }
-        });
-
-
-        // vibration test
-        Button vibration = findViewById(R.id.vibration);
-//        vibration.setOnClickListener(new View.OnClickListener() {
+//        Button sendButton = findViewById(R.id.sendButton);
+//        sendButton.setOnClickListener(new View.OnClickListener() {
 //            @Override
 //            public void onClick(View v) {
-//                //                vibration_timer(3,3);
+//
+//                NotificationSpec notificationSpec = new NotificationSpec();
+//                String testString = editContent.getText().toString();
+//                notificationSpec.phoneNumber = testString;
+//                notificationSpec.body = testString;
+//                notificationSpec.sender = testString;
+//                notificationSpec.subject = testString;
+//                notificationSpec.type = NotificationType.values()[sendTypeSpinner.getSelectedItemPosition()];
+//                notificationSpec.pebbleColor = notificationSpec.type.color;
+//                GBApplication.deviceService().onNotification(notificationSpec);
+//            }
+//        });
+//
+//        Button incomingCallButton = findViewById(R.id.incomingCallButton);
+//        incomingCallButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                CallSpec callSpec = new CallSpec();
+//                callSpec.command = CallSpec.CALL_INCOMING;
+//                callSpec.number = editContent.getText().toString();
+//                GBApplication.deviceService().onSetCallState(callSpec);
+//
+//            }
+//        });
+        TextView realtimeHR = findViewById(R.id.realtimeHR);
+//        realtimeHR.addte
+
+
+//        Button outgoingCallButton = findViewById(R.id.outgoingCallButton);
+//        outgoingCallButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                CallSpec callSpec = new CallSpec();
+//                callSpec.command = CallSpec.CALL_OUTGOING;
+//                callSpec.number = editContent.getText().toString();
+//                GBApplication.deviceService().onSetCallState(callSpec);
+//            }
+//        });
+//
+//        Button startCallButton = findViewById(R.id.startCallButton);
+//        startCallButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                CallSpec callSpec = new CallSpec();
+//                callSpec.command = CallSpec.CALL_START;
+//                GBApplication.deviceService().onSetCallState(callSpec);
+//            }
+//        });
+//        Button endCallButton = findViewById(R.id.endCallButton);
+//        endCallButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                CallSpec callSpec = new CallSpec();
+//                callSpec.command = CallSpec.CALL_END;
+//                GBApplication.deviceService().onSetCallState(callSpec);
+//            }
+//        });
+//
+//        Button rebootButton = findViewById(R.id.rebootButton);
+//        rebootButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                GBApplication.deviceService().onReset(GBDeviceProtocol.RESET_FLAGS_REBOOT);
+//            }
+//        });
+//
+//        Button factoryResetButton = findViewById(R.id.factoryResetButton);
+//        factoryResetButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                new AlertDialog.Builder(DebugActivity.this)
+//                        .setCancelable(true)
+//                        .setTitle(R.string.debugactivity_really_factoryreset_title)
+//                        .setMessage(R.string.debugactivity_really_factoryreset)
+//                        .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+//                            @Override
+//                            public void onClick(DialogInterface dialog, int which) {
+//                                GBApplication.deviceService().onReset(GBDeviceProtocol.RESET_FLAGS_FACTORY_RESET);
+//                            }
+//                        })
+//                        .setNegativeButton(R.string.Cancel, new DialogInterface.OnClickListener() {
+//                            @Override
+//                            public void onClick(DialogInterface dialog, int which) {
+//                            }
+//                        })
+//                        .show();
+//            }
+//        });
+//
+//        Button heartRateButton = findViewById(R.id.HeartRateButton);
+//        heartRateButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                GB.toast("Measuring heart rate, please wait...", Toast.LENGTH_LONG, GB.INFO);
+//                GBApplication.deviceService().onHeartRateTest();
+////                new AmazfitGTS2MiniSupport().onEnableRealtimeHeartRateMeasurement(true);
+//            }
+//        });
+//
+//        Button setFetchTimeButton = findViewById(R.id.SetFetchTimeButton);
+//        setFetchTimeButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//
+//                final Calendar currentDate = Calendar.getInstance();
+//                Context context = getApplicationContext();
+//
+//                if (context instanceof GBApplication) {
+//                    GBApplication gbApp = (GBApplication) context;
+//                    final GBDevice device = gbApp.getDeviceManager().getSelectedDevice();
+//                    if (device != null) {
+//                        new DatePickerDialog(DebugActivity.this, new DatePickerDialog.OnDateSetListener() {
+//                            @Override
+//                            public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+//                                Calendar date = Calendar.getInstance();
+//                                date.set(year, monthOfYear, dayOfMonth);
+//
+//                                long timestamp = date.getTimeInMillis() - 1000;
+//                                GB.toast("Setting lastSyncTimeMillis: " + timestamp, Toast.LENGTH_LONG, GB.INFO);
+//
+//                                SharedPreferences.Editor editor = GBApplication.getDeviceSpecificSharedPrefs(device.getAddress()).edit();
+//                                editor.remove("lastSyncTimeMillis"); //FIXME: key reconstruction is BAD
+//                                editor.putLong("lastSyncTimeMillis", timestamp);
+//                                editor.apply();
+//                            }
+//                        }, currentDate.get(Calendar.YEAR), currentDate.get(Calendar.MONTH), currentDate.get(Calendar.DATE)).show();
+//                    } else {
+//                        GB.toast("Device not selected/connected", Toast.LENGTH_LONG, GB.INFO);
+//                    }
+//                }
+//
+//
 //            }
 //        });
 
 
-        vibration.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//                test();
-                NotificationSpec spec = new NotificationSpec();
-//                spec.type = new NotificationType(1, (byte)0x01 );
-                GBApplication.deviceService().onNotification(spec);
-            }
-        });
+//        Button setMusicInfoButton = findViewById(R.id.setMusicInfoButton);
+//        setMusicInfoButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                MusicSpec musicSpec = new MusicSpec();
+//                String testString = editContent.getText().toString();
+//                musicSpec.artist = testString + "(artist)";
+//                musicSpec.album = testString + "(album)";
+//                musicSpec.track = testString + "(track)";
+//                musicSpec.duration = 10;
+//                musicSpec.trackCount = 5;
+//                musicSpec.trackNr = 2;
+//
+//                GBApplication.deviceService().onSetMusicInfo(musicSpec);
+//
+//                MusicStateSpec stateSpec = new MusicStateSpec();
+//                stateSpec.position = 0;
+//                stateSpec.state = 0x01; // playing
+//                stateSpec.playRate = 100;
+//                stateSpec.repeat = 1;
+//                stateSpec.shuffle = 1;
+//
+//                GBApplication.deviceService().onSetMusicState(stateSpec);
+//            }
+//        });
+//
+//
+//        // vibration test
+//        Button vibration = findViewById(R.id.vibration);
+////        vibration.setOnClickListener(new View.OnClickListener() {
+////            @Override
+////            public void onClick(View v) {
+////                //                vibration_timer(3,3);
+////            }
+////        });
+//
+//
+//        vibration.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+////                test();
+//                NotificationSpec spec = new NotificationSpec();
+////                spec.type = new NotificationType(1, (byte)0x01 );
+//                GBApplication.deviceService().onNotification(spec);
+//            }
+//        });
+//
+//
+//        Button setTimeButton = findViewById(R.id.setTimeButton);
+//        setTimeButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                GBApplication.deviceService().onSetTime();
+//            }
+//        });
+//
+//        Button testNotificationButton = findViewById(R.id.testNotificationButton);
+//        testNotificationButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                testNotification();
+//            }
+//        });
+//
+//        Button testPebbleKitNotificationButton = findViewById(R.id.testPebbleKitNotificationButton);
+//        testPebbleKitNotificationButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                testPebbleKitNotification();
+//            }
+//        });
+//
+//        Button fetchDebugLogsButton = findViewById(R.id.fetchDebugLogsButton);
+//        fetchDebugLogsButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                GBApplication.deviceService().onFetchRecordedData(RecordedDataTypes.TYPE_DEBUGLOGS);
+//            }
+//        });
+//
+//        Button testNewFunctionalityButton = findViewById(R.id.testNewFunctionality);
+//        testNewFunctionalityButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                testNewFunctionality();
+//            }
+//        });
+//
+//        Button shareLogButton = findViewById(R.id.shareLog);
+//        shareLogButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                showWarning();
+//            }
+//        });
+//
+//        Button showWidgetsButton = findViewById(R.id.showWidgetsButton);
+//        showWidgetsButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                showAllRegisteredAppWidgets();
+//            }
+//        });
 
+//        Button unregisterWidgetsButton = findViewById(R.id.deleteWidgets);
+//        unregisterWidgetsButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                unregisterAllRegisteredAppWidgets();
+//            }
+//        });
+//
+//        Button showWidgetsPrefsButton = findViewById(R.id.showWidgetsPrefs);
+//        showWidgetsPrefsButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                showAppWidgetsPrefs();
+//            }
+//        });
+//
+//        Button deleteWidgetsPrefsButton = findViewById(R.id.deleteWidgetsPrefs);
+//        deleteWidgetsPrefsButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                deleteWidgetsPrefs();
+//            }
+//        });
 
-        Button setTimeButton = findViewById(R.id.setTimeButton);
-        setTimeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                GBApplication.deviceService().onSetTime();
-            }
-        });
-
-        Button testNotificationButton = findViewById(R.id.testNotificationButton);
-        testNotificationButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                testNotification();
-            }
-        });
-
-        Button testPebbleKitNotificationButton = findViewById(R.id.testPebbleKitNotificationButton);
-        testPebbleKitNotificationButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                testPebbleKitNotification();
-            }
-        });
-
-        Button fetchDebugLogsButton = findViewById(R.id.fetchDebugLogsButton);
-        fetchDebugLogsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                GBApplication.deviceService().onFetchRecordedData(RecordedDataTypes.TYPE_DEBUGLOGS);
-            }
-        });
-
-        Button testNewFunctionalityButton = findViewById(R.id.testNewFunctionality);
-        testNewFunctionalityButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                testNewFunctionality();
-            }
-        });
-
-        Button shareLogButton = findViewById(R.id.shareLog);
-        shareLogButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showWarning();
-            }
-        });
-
-        Button showWidgetsButton = findViewById(R.id.showWidgetsButton);
-        showWidgetsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showAllRegisteredAppWidgets();
-            }
-        });
-
-        Button unregisterWidgetsButton = findViewById(R.id.deleteWidgets);
-        unregisterWidgetsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                unregisterAllRegisteredAppWidgets();
-            }
-        });
-
-        Button showWidgetsPrefsButton = findViewById(R.id.showWidgetsPrefs);
-        showWidgetsPrefsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showAppWidgetsPrefs();
-            }
-        });
-
-        Button deleteWidgetsPrefsButton = findViewById(R.id.deleteWidgetsPrefs);
-        deleteWidgetsPrefsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                deleteWidgetsPrefs();
-            }
-        });
-
-        CheckBox activity_list_debug_extra_time_range = findViewById(R.id.activity_list_debug_extra_time_range);
-        activity_list_debug_extra_time_range.setAllCaps(true);
-        boolean activity_list_debug_extra_time_range_value = GBApplication.getPrefs().getPreferences().getBoolean("activity_list_debug_extra_time_range", false);
-        activity_list_debug_extra_time_range.setChecked(activity_list_debug_extra_time_range_value);
-
-        activity_list_debug_extra_time_range.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                GBApplication.getPrefs().getPreferences().getBoolean("activity_list_debug_extra_time_range", false);
-                SharedPreferences.Editor editor = GBApplication.getPrefs().getPreferences().edit();
-                editor.putBoolean("activity_list_debug_extra_time_range", b).apply();
-            }
-        });
-
+//        CheckBox activity_list_debug_extra_time_range = findViewById(R.id.activity_list_debug_extra_time_range);
+//        activity_list_debug_extra_time_range.setAllCaps(true);
+//        boolean activity_list_debug_extra_time_range_value = GBApplication.getPrefs().getPreferences().getBoolean("activity_list_debug_extra_time_range", false);
+//        activity_list_debug_extra_time_range.setChecked(activity_list_debug_extra_time_range_value);
+//
+//        activity_list_debug_extra_time_range.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+//            @Override
+//            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+//                GBApplication.getPrefs().getPreferences().getBoolean("activity_list_debug_extra_time_range", false);
+//                SharedPreferences.Editor editor = GBApplication.getPrefs().getPreferences().edit();
+//                editor.putBoolean("activity_list_debug_extra_time_range", b).apply();
+//            }
+//        });
+//
     }
 
     private void deleteWidgetsPrefs() {

@@ -654,8 +654,15 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             VibrationProfile profile = VibrationProfile.getProfile(CONTEXT.getString(R.string.p_medium), vibrationTimes);
             profile.setAlertLevel(2);   // medium level
 
+            AbortTransactionAction abortAction = new StopNotificationAction(getCharacteristic(UUID_CHARACTERISTIC_ALERT_LEVEL)) {
+                @Override
+                protected boolean shouldAbort() {
+                    return !isAlarmClockRinging();
+                }
+            };
+
 //            performPreferredNotification("alarm clock ringing", MiBandConst.ORIGIN_ALARM_CLOCK, null, HuamiService.ALERT_LEVEL_VIBRATE_ONLY, null);
-            getNotificationStrategy().sendCustomNotification(profile, null, 0, 0, 0, 0,null,builder);
+            getNotificationStrategy().sendCustomNotification(profile, null, 0, 0, 0, 0,abortAction,builder);
             builder.queue(getQueue());
         }catch (IOException ex){
             GB.toast(getContext(), "exception occured", Toast.LENGTH_SHORT, GB.INFO);
@@ -1111,7 +1118,6 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                         try {
                             TransactionBuilder builder = performInitialized("Continue heart rate measurement");
                             builder.write(characteristicHRControlPoint, continueHeartMeasurementContinuous);
-                            builder.queue(getQueue());
 
                             HRval[0] = realtimeSamplesSupport.getHeartrateBpm();
 
@@ -1124,10 +1130,11 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
                             if (realtimeSamplesSupport.getHeartrateBpm() > 60){
 //                                vibrateOnce();
-//                                customNotification();
+                                customNotification();
 //                                onNotification(new NotificationSpec());
                             }
 
+                            builder.queue(getQueue());
                         } catch (IOException e) {
                         }
                     }
