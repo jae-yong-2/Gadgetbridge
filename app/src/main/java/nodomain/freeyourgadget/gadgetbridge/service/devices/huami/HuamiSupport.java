@@ -646,7 +646,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
     // added for custom design vibration with notification
     private void customNotification(){
         try{
-            GB.toast(getContext(), "notified", Toast.LENGTH_SHORT, GB.INFO);
+//            GB.toast(getContext(), "notified", Toast.LENGTH_SHORT, GB.INFO);
             TransactionBuilder builder = performInitialized("Send custom vibration with notification");
             Prefs prefs = GBApplication.getPrefs();
             Context CONTEXT = GBApplication.getContext();
@@ -662,7 +662,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             };
 
 //            performPreferredNotification("alarm clock ringing", MiBandConst.ORIGIN_ALARM_CLOCK, null, HuamiService.ALERT_LEVEL_VIBRATE_ONLY, null);
-            getNotificationStrategy().sendCustomNotification(profile, null, 0, 0, 0, 0,abortAction,builder);
+            getNotificationStrategy().sendCustomNotification(new VibrationProfile(CONTEXT.getString(R.string.p_staccato), new int[]{100, 0}, (short) 1), null, 0, 0, 0, 0, abortAction ,builder);
             builder.queue(getQueue());
         }catch (IOException ex){
             GB.toast(getContext(), "exception occured", Toast.LENGTH_SHORT, GB.INFO);
@@ -1126,7 +1126,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                             } else {
                                 previousHRval[0] = HRval[0];
                             }
-                            GB.toast(getContext(), "measured:" + realtimeSamplesSupport.getHeartrateBpm(), Toast.LENGTH_LONG, GB.INFO);
+//                            GB.toast(getContext(), "measured:" + realtimeSamplesSupport.getHeartrateBpm(), Toast.LENGTH_LONG, GB.INFO);
 
                             if (realtimeSamplesSupport.getHeartrateBpm() > 60){
 //                                vibrateOnce();
@@ -3006,7 +3006,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         setHeartrateMeasurementInterval(builder, getHeartRateMeasurementInterval());
 //        setEnableRealtimeHeartRateMeasurementBySeconds();
         requestAlarms(builder);
-//        onEnableRealtimeHeartRateMeasurement(true);
+        onEnableRealtimeHeartRateMeasurement(true);
     }
 
     //added

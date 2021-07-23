@@ -28,6 +28,10 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -79,7 +83,6 @@ import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.amazfitgts2.Am
 import nodomain.freeyourgadget.gadgetbridge.service.devices.miband.RealtimeSamplesSupport;
 
 
-
 import static android.content.Intent.EXTRA_SUBJECT;
 import static nodomain.freeyourgadget.gadgetbridge.util.GB.NOTIFICATION_CHANNEL_ID;
 
@@ -89,6 +92,7 @@ public class DebugActivity extends AbstractGBActivity {
     private static final Logger LOG = LoggerFactory.getLogger(DebugActivity.class);
 
     private int heartRate = 0;  //
+    private RealtimeSamplesSupport realtimeSamplesSupport;
 
     private static final String EXTRA_REPLY = "reply";
     private static final String ACTION_REPLY
@@ -119,8 +123,8 @@ public class DebugActivity extends AbstractGBActivity {
     private Spinner sendTypeSpinner;
     private EditText editContent;
 
-    private Thread thread_b;        // 심박 수 받아오는 쓰레드
-    private Thread thread_a;
+//    private Thread thread_b;        // 심박 수 받아오는 쓰레드
+//    private Thread thread_a;
 
     private int handleRealtimeSample(Serializable extra) {  // void -> int 형으로 변환
         int t = 0;  // 심박수 저장
@@ -128,7 +132,7 @@ public class DebugActivity extends AbstractGBActivity {
         if (extra instanceof ActivitySample) {
             ActivitySample sample = (ActivitySample) extra;
             t = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
-            GB.toast(this, "Heart Rate measured from sample: " + t, Toast.LENGTH_LONG, GB.INFO);
+//            GB.toast(this, "Heart Rate measured from sample: " + t, Toast.LENGTH_LONG, GB.INFO);
 
 //            synchronized (thread_b) {
 //                thread_b.notify();  // 쓰레드 notify, wait상태인 thread_a 깨움
@@ -137,6 +141,7 @@ public class DebugActivity extends AbstractGBActivity {
         return t;
     }
 
+//
 //    private void vibe_thread() {
 //        thread_b = new Thread(new Runnable() {
 //            @Override
@@ -147,7 +152,7 @@ public class DebugActivity extends AbstractGBActivity {
 //                }
 //            }
 //        });
-//
+
 //        Thread thread_a = new Thread(new Runnable() {
 //            @Override
 //            public void run() {
@@ -175,8 +180,8 @@ public class DebugActivity extends AbstractGBActivity {
 //
 //        thread_a.start();
 //    }
-//
-//    private void test() {
+
+    //    private void test() {
 //        vibe_thread();
 //    }
 //
@@ -208,6 +213,38 @@ public class DebugActivity extends AbstractGBActivity {
 //        };
 //        timer.schedule(Task, 0, period * 500);  // 0.5초 run() 실행
 //    }
+    public class TimeThread extends Thread {
+        @Override
+        public void run() {
+            super.run();
+            do {
+                try {
+                    Thread.sleep(500);
+                    Message msg = new Message();
+                    msg.what = 1;
+                    handler.sendMessage(msg);
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } while (true);
+
+        }
+    }
+
+    private Handler handler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what) {
+                case 1:
+                    HRvalText.setText(heartRate + "bpm");
+                    break;
+            }
+            return false;
+        }
+    });
+
+    TextView HRvalText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -219,6 +256,10 @@ public class DebugActivity extends AbstractGBActivity {
         filter.addAction(DeviceService.ACTION_REALTIME_SAMPLES);
         LocalBroadcastManager.getInstance(this).registerReceiver(mReceiver, filter);
         registerReceiver(mReceiver, filter); // for ACTION_REPLY
+
+
+        HRvalText = (TextView) findViewById(R.id.realtimeHR);
+        new TimeThread().start();
 
 //        editContent = findViewById(R.id.editContent);
 
@@ -236,7 +277,6 @@ public class DebugActivity extends AbstractGBActivity {
 //            @Override
 //            public void onClick(View v) {
 //
-//                NotificationSpec notificationSpec = new NotificationSpec();
 //                String testString = editContent.getText().toString();
 //                notificationSpec.phoneNumber = testString;
 //                notificationSpec.body = testString;
@@ -259,9 +299,9 @@ public class DebugActivity extends AbstractGBActivity {
 //
 //            }
 //        });
-        TextView realtimeHR = findViewById(R.id.realtimeHR);
 //        realtimeHR.addte
 
+//                NotificationSpec notificationSpec = new NotificationSpec();
 
 //        Button outgoingCallButton = findViewById(R.id.outgoingCallButton);
 //        outgoingCallButton.setOnClickListener(new View.OnClickListener() {
