@@ -98,6 +98,11 @@ public abstract class RealtimeSamplesSupport {
             return 0;
         }
         return delta;
+//        return lastSteps;
+    }
+
+    public synchronized int getTotalStep(){
+        return steps;
     }
 
     public void setHeartrateBpm(int hrBpm) {

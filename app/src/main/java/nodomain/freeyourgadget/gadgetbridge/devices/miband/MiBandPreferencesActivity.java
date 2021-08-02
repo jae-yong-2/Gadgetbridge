@@ -252,7 +252,7 @@ public class MiBandPreferencesActivity extends AbstractSettingsActivity {
         }
     }
 
-    private void tryVibration(NotificationType type) {
+    public void tryVibration(NotificationType type) {
         NotificationSpec spec = new NotificationSpec();
         spec.type = type;
         GBApplication.deviceService().onNotification(spec);

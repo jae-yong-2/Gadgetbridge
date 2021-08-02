@@ -88,4 +88,6 @@ public interface ActivitySample extends TimeStamped {
      * @param value the value in bpm
      */
     void setHeartRate(int value);
+
+
 }

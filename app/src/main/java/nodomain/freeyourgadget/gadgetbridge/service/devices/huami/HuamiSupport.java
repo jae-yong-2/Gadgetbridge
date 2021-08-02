@@ -127,6 +127,7 @@ import nodomain.freeyourgadget.gadgetbridge.service.btle.actions.ConditionalWrit
 import nodomain.freeyourgadget.gadgetbridge.service.btle.actions.SetDeviceStateAction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.IntentListener;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.alertnotification.AlertCategory;
+import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.alertnotification.AlertLevel;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.alertnotification.AlertNotificationProfile;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.alertnotification.NewAlert;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.deviceinfo.DeviceInfoProfile;
@@ -420,8 +421,6 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
     private static final byte[] startHeartMeasurementContinuous = new byte[]{0x15, MiBandService.COMMAND_SET__HR_CONTINUOUS, 1};
     private static final byte[] stopHeartMeasurementContinuous = new byte[]{0x15, MiBandService.COMMAND_SET__HR_CONTINUOUS, 0};
 
-    // added
-//    private static final byte[] continueHeartMeasurementContinuous = new byte[]{0x16};
 
     private HuamiSupport requestBatteryInfo(TransactionBuilder builder) {
         LOG.debug("Requesting Battery Info!");
@@ -644,8 +643,8 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
     }
 
     // added for custom design vibration with notification
-    private void customNotification(){
-        try{
+    private void customNotification() {
+        try {
 //            GB.toast(getContext(), "notified", Toast.LENGTH_SHORT, GB.INFO);
             TransactionBuilder builder = performInitialized("Send custom vibration with notification");
             Prefs prefs = GBApplication.getPrefs();
@@ -662,9 +661,9 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             };
 
 //            performPreferredNotification("alarm clock ringing", MiBandConst.ORIGIN_ALARM_CLOCK, null, HuamiService.ALERT_LEVEL_VIBRATE_ONLY, null);
-            getNotificationStrategy().sendCustomNotification(new VibrationProfile(CONTEXT.getString(R.string.p_staccato), new int[]{100, 0}, (short) 1), null, 0, 0, 0, 0, abortAction ,builder);
+            getNotificationStrategy().sendCustomNotification(new VibrationProfile(CONTEXT.getString(R.string.p_staccato), new int[]{100, 0}, (short) 1), null, 0, 0, 0, 0, abortAction, builder);
             builder.queue(getQueue());
-        }catch (IOException ex){
+        } catch (IOException ex) {
             GB.toast(getContext(), "exception occured", Toast.LENGTH_SHORT, GB.INFO);
         }
     }
@@ -802,6 +801,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             }
             builder.queue(getQueue());
         } catch (IOException ex) {
+            LOG.error("Unable to send notification to device", ex);
             LOG.error("Unable to send notification to device", ex);
         }
     }
@@ -1102,49 +1102,49 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             if (enable) {
 
                 GB.toast(getContext(), "Real time heart rate measurement enabled", Toast.LENGTH_LONG, GB.INFO);
-//                VibrationProfile.getProfile("ID_SHORT", (short) 1);
 
                 builder.write(characteristicHRControlPoint, stopHeartMeasurementManual);
                 builder.write(characteristicHRControlPoint, startHeartMeasurementContinuous);
                 // added
-                punchTimer.scheduleAtFixedRate(new TimerTask() {
-                    int temp = 0;
-                    Context CONTEXT = GBApplication.getContext();
-
-                    @Override
-                    public void run() {
-                        LOG.debug("punching the deviceService...");
-                        // write the continue bit...
-                        try {
-                            TransactionBuilder builder = performInitialized("Continue heart rate measurement");
-                            builder.write(characteristicHRControlPoint, continueHeartMeasurementContinuous);
-
-                            HRval[0] = realtimeSamplesSupport.getHeartrateBpm();
-
-                            if (HRval[0] < 0) {
-                                realtimeSamplesSupport.setHeartrateBpm(previousHRval[0]);
-                            } else {
-                                previousHRval[0] = HRval[0];
-                            }
-//                            GB.toast(getContext(), "measured:" + realtimeSamplesSupport.getHeartrateBpm(), Toast.LENGTH_LONG, GB.INFO);
-
-                            if (realtimeSamplesSupport.getHeartrateBpm() > 60){
+//                punchTimer.scheduleAtFixedRate(new TimerTask() {
+//                    int temp = 0;
+//                    Context CONTEXT = GBApplication.getContext();
+//
+//                    @Override
+//                    public void run() {
+//                        LOG.debug("punching the deviceService...");
+//                        // write the continue bit...
+//                        try {
+//                            TransactionBuilder builder = performInitialized("Continue heart rate measurement");
+//                            builder.write(characteristicHRControlPoint, continueHeartMeasurementContinuous);
+//
+//                            HRval[0] = realtimeSamplesSupport.getHeartrateBpm();
+//
+//                            if (HRval[0] < 1) {
+//                                realtimeSamplesSupport.setHeartrateBpm(previousHRval[0]);
+//                            } else {
+//                                previousHRval[0] = HRval[0];
+//                            }
+////                            GB.toast(getContext(), "measured:" + realtimeSamplesSupport.getHeartrateBpm(), Toast.LENGTH_LONG, GB.INFO);
+//
+//                            if (realtimeSamplesSupport.getHeartrateBpm() > 90) {
 //                                vibrateOnce();
-                                customNotification();
-//                                onNotification(new NotificationSpec());
-                            }
-
-                            builder.queue(getQueue());
-                        } catch (IOException e) {
-                        }
-                    }
-                }, 1000 * 10 , 1000);
-                // Start after 10 seconds, repeat each second
-            } else {
-                builder.write(characteristicHRControlPoint, stopHeartMeasurementContinuous);
-                punchTimer.cancel();
-                punchTimer = new Timer();
+////                                customNotification();
+////                                onNotification(new NotificationSpec());
+//                            }
+//
+//                            builder.queue(getQueue());
+//                        } catch (IOException e) {
+//                        }
+//                    }
+//                }, 1000 * 10, 1000);
+//                // Start after 10 seconds, repeat each second
             }
+//            else {
+//                builder.write(characteristicHRControlPoint, stopHeartMeasurementContinuous);
+//                punchTimer.cancel();
+//                punchTimer = new Timer();
+//            }
             builder.queue(getQueue());
             enableRealtimeSamplesTimer(enable);
         } catch (IOException ex) {
@@ -1167,6 +1167,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
     @Override
     public void onFindDevice(boolean start) {
         isLocatingDevice = start;
+
 
         if (start) {
             AbortTransactionAction abortAction = new AbortTransactionAction() {
@@ -1288,9 +1289,11 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
     // this could go though onion code with preferred notification, but I this should work on all huami devices
     private void vibrateOnce() {
+
         BluetoothGattCharacteristic characteristic = getCharacteristic(UUID_CHARACTERISTIC_ALERT_LEVEL);
         try {
             TransactionBuilder builder = performInitialized("Vibrate once");
+            builder.write(characteristic, new byte[]{3});
             builder.write(characteristic, new byte[]{3});
             builder.queue(getQueue());
         } catch (IOException e) {
@@ -1644,7 +1647,13 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         } else if (HuamiService.UUID_CHARACTERISTIC_3_CONFIGURATION.equals(characteristicUUID)) {
             handleConfigurationInfo(characteristic.getValue());
             return true;
-        } else {
+        }
+        // added for acc data -------------------------
+        else if (MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA.equals(characteristicUUID)) {
+            handleSensorData(characteristic.getValue());
+        }
+        //---------------------------------------------
+        else {
             LOG.info("Unhandled characteristic changed: " + characteristicUUID);
             logMessageContent(characteristic.getValue());
         }
@@ -1820,6 +1829,23 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             realtimeSamplesSupport = new RealtimeSamplesSupport(1000, 1000) {
                 @Override
                 public void doCurrentSample() {
+//                    //added for acc data
+//                    try {
+//                        TransactionBuilder builder = performInitialized("Toggle sensor reading");
+//                        builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT), startSensorRead);
+//                        builder.queue(getQueue());
+//                    } catch (IOException e) {
+//                        LOG.debug("SENSOR READ FAIL");
+//                    }
+                    try {
+                        if(HuamiSupport.super.isConnected()){
+                            TransactionBuilder builder = performInitialized("Continue heart rate measurement");
+                            builder.write(characteristicHRControlPoint, continueHeartMeasurementContinuous);
+                            builder.queue(getQueue());
+                        }else{
+                        }
+                    } catch (IOException e) {
+                    }
 
                     try (DBHandler handler = GBApplication.acquireDB()) {
                         DaoSession session = handler.getDaoSession();
@@ -1831,14 +1857,23 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                         MiBandActivitySample sample = createActivitySample(device, user, ts, provider);
 
                         /*-------------------------------------*/
-                        // added
-                        int now = getHeartrateBpm();
-                        if (now < 0) {
-                            setHeartrateBpm(previousHRval[0]);
+                        // added for heart rate sensor
+                        if (getHeartrateBpm() > 0) {
+                            previousHRval[0] = getHeartrateBpm();
+                            sample.setHeartRate(getHeartrateBpm());
+                        } else if (getHeartrateBpm() < 0 && previousHRval[0] > 0) {
+                            sample.setHeartRate(previousHRval[0]);
+                        } else {
+                            previousHRval[0] = getHeartrateBpm();
                         }
+                        LOG.debug("previous HR : " + sample.getHeartRate() + ", previous HR : " + getHeartrateBpm());
                         /*-------------------------------------*/
-                        sample.setHeartRate(getHeartrateBpm());
-//                        sample.setSteps(getSteps());
+//                        sample.setHeartRate(getHeartrateBpm());
+
+
+
+
+                        sample.setSteps(getSteps());
                         sample.setRawIntensity(ActivitySample.NOT_MEASURED);
                         sample.setRawKind(HuamiConst.TYPE_ACTIVITY); // to make it visible in the charts TODO: add a MANUAL kind for that?
 
@@ -1849,9 +1884,18 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                         // Note: we know that the DAO sample is never committed again, so we simply
                         // change the value here in memory.
                         sample.setSteps(getSteps());
+//                        sample.setSteps(Hu)
+
 
                         if (LOG.isDebugEnabled()) {
                             LOG.debug("realtime sample: " + sample);
+                            LOG.debug("realtime heart: " + sample.getHeartRate() + ", intensity : " + sample.getIntensity() + ", raw intensity : " + sample.getIntensity() + ", step : " + sample.getSteps() + ", kind : " + sample.getKind(), ", raw kind : " + sample.getRawKind());
+                            // added for step count
+                            /*-------------------------------------*/
+                            LOG.debug("realtime step from getRealtimeSampleSupport : " + getRealtimeSamplesSupport().getSteps());
+                            LOG.debug("realtime step from sample : " + sample.getSteps());
+                            LOG.debug("realtime step total: " + this.steps);
+                            /*-------------------------------------*/
                         }
 
                         Intent intent = new Intent(DeviceService.ACTION_REALTIME_SAMPLES)
@@ -3004,14 +3048,74 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         setDisconnectNotification(builder);
         setExposeHRThridParty(builder);
         setHeartrateMeasurementInterval(builder, getHeartRateMeasurementInterval());
-//        setEnableRealtimeHeartRateMeasurementBySeconds();
         requestAlarms(builder);
+
         onEnableRealtimeHeartRateMeasurement(true);
+        onEnableRealtimeSteps(true);
     }
+
 
     //added
     private static final byte[] continueHeartMeasurementContinuous = new byte[]{0x16};
 
+    // added for acc data
+    private static final byte[] startSensorRead = new byte[]{MiBandService.COMMAND_GET_SENSOR_DATA, 1};
+    private static final byte[] stopSensorRead = new byte[]{MiBandService.COMMAND_GET_SENSOR_DATA, 0};
+
+
+    private static void handleSensorData(byte[] value) {
+        int counter = 0, step = 0;
+        double xAxis = 0.0, yAxis = 0.0, zAxis = 0.0;
+        double scale_factor = 1000.0;
+        double gravity = 9.81;
+
+        if ((value.length - 2) % 6 != 0) {
+            LOG.warn("GOT UNEXPECTED SENSOR DATA WITH LENGTH: " + value.length);
+            LOG.warn("DATA: " + GB.hexdump(value, 0, value.length));
+        } else {
+            counter = (value[0] & 0xff) | ((value[1] & 0xff) << 8);
+            for (int idx = 0; idx < ((value.length - 2) / 6); idx++) {
+                step = idx * 6;
+
+                // Analyse X-axis data
+                int xAxisRawValue = (value[step + 2] & 0xff) | ((value[step + 3] & 0xff) << 8);
+                int xAxisSign = (value[step + 3] & 0x30) >> 4;
+                int xAxisType = (value[step + 3] & 0xc0) >> 6;
+                if (xAxisSign == 0) {
+                    xAxis = xAxisRawValue & 0xfff;
+                } else {
+                    xAxis = (xAxisRawValue & 0xfff) - 4097;
+                }
+                xAxis = (xAxis * 1.0 / scale_factor) * gravity;
+
+                // Analyse Y-axis data
+                int yAxisRawValue = (value[step + 4] & 0xff) | ((value[step + 5] & 0xff) << 8);
+                int yAxisSign = (value[step + 5] & 0x30) >> 4;
+                int yAxisType = (value[step + 5] & 0xc0) >> 6;
+                if (yAxisSign == 0) {
+                    yAxis = yAxisRawValue & 0xfff;
+                } else {
+                    yAxis = (yAxisRawValue & 0xfff) - 4097;
+                }
+                yAxis = (yAxis / scale_factor) * gravity;
+
+                // Analyse Z-axis data
+                int zAxisRawValue = (value[step + 6] & 0xff) | ((value[step + 7] & 0xff) << 8);
+                int zAxisSign = (value[step + 7] & 0x30) >> 4;
+                int zAxisType = (value[step + 7] & 0xc0) >> 6;
+                if (zAxisSign == 0) {
+                    zAxis = zAxisRawValue & 0xfff;
+                } else {
+                    zAxis = (zAxisRawValue & 0xfff) - 4097;
+                }
+                zAxis = (zAxis / scale_factor) * gravity;
+
+                // Print results in log
+//                LOG.info("READ SENSOR DATA VALUES: counter:" + counter + " step:" + step + " x-axis:" + String.format("%.03f", xAxis) + " y-axis:" + String.format("%.03f", yAxis) + " z-axis:" + String.format("%.03f", zAxis) + ";");
+                LOG.debug("READ SENSOR DATA VALUES: counter:" + counter + " step:" + step + " x-axis:" + String.format("%.03f", xAxis) + " y-axis:" + String.format("%.03f", yAxis) + " z-axis:" + String.format("%.03f", zAxis) + ";");
+            }
+        }
+    }
 
     private int getHeartRateMeasurementInterval() {
 

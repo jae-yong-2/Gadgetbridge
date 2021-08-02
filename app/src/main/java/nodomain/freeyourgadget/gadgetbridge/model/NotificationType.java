@@ -80,6 +80,7 @@ public enum NotificationType {
         this.color = color;
     }
 
+
     /**
      * Returns the enum constant as a fixed String value, e.g. to be used
      * as preference key. In case the keys are ever changed, this method

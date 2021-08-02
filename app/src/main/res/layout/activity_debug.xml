@@ -33,24 +33,23 @@
                 android:text="Real time HR measurement"
                 android:textAppearance="?android:attr/textAppearanceLarge" />
 
+            <EditText
+                android:id="@+id/editContent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                grid:layout_columnSpan="2"
+                grid:layout_gravity="fill_horizontal"
+                android:ems="10"
+                android:inputType="textMultiLine"
+                android:text="Test" />
 
-<!--            <EditText-->
-<!--                android:id="@+id/editContent"-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                grid:layout_columnSpan="2"-->
-<!--                grid:layout_gravity="fill_horizontal"-->
-<!--                android:ems="10"-->
-<!--                android:inputType="textMultiLine"-->
-<!--                android:text="Test" />-->
-
-<!--            <Spinner-->
-<!--                android:id="@+id/sendTypeSpinner"-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                grid:layout_gravity="fill_horizontal"-->
-<!--                grid:layout_columnSpan="2"-->
-<!--                android:text="send as SMS" />-->
+            <Spinner
+                android:id="@+id/sendTypeSpinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                grid:layout_gravity="fill_horizontal"
+                grid:layout_columnSpan="2"
+                android:text="send as SMS" />
 
             <TextView
                 android:id= "@+id/realtimeHR"
@@ -62,22 +61,39 @@
                 android:textAlignment="center"
                 android:textSize="100px" />
 
+            <TextView
+                android:id="@+id/realtimeSteps"
+                android:layout_width="378dp"
+                android:layout_height="wrap_content"
+                android:gravity="fill_horizontal"
+                android:text="steps:0"
+                android:textAlignment="center"
+                android:textSize="100px"
+                grid:layout_columnSpan="2" />
 
-<!--            <Button-->
-<!--                android:id="@+id/vibration"-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                grid:layout_columnSpan="2"-->
-<!--                grid:layout_gravity="fill_horizontal"-->
-<!--                android:text="vibration test" />-->
+            <Button
+                android:id="@+id/vibrationButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                grid:layout_columnSpan="2"
+                grid:layout_gravity="fill_horizontal"
+                android:text="vibration test" />
 
-<!--            <Button-->
-<!--                android:id="@+id/sendButton"-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                grid:layout_columnSpan="2"-->
-<!--                grid:layout_gravity="fill_horizontal"-->
-<!--                android:text="Send" />-->
+            <Button
+                android:id="@+id/sendButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                grid:layout_columnSpan="2"
+                grid:layout_gravity="fill_horizontal"
+                android:text="Send" />
+
+            <Button
+                android:id="@+id/sensorButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="fill_horizontal"
+                android:text="Sensor"
+                grid:layout_columnSpan="2" />
 
 <!--            <Button-->
 <!--                android:id="@+id/incomingCallButton"-->

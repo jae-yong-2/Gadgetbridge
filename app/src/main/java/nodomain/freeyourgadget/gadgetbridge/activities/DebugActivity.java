@@ -12,6 +12,7 @@
     GNU Affero General Public License for more details.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
 package nodomain.freeyourgadget.gadgetbridge.activities;
 
 import android.app.AlertDialog;
@@ -63,9 +64,11 @@ import java.util.TimerTask;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.Widget;
+import nodomain.freeyourgadget.gadgetbridge.devices.miband.MiBandPreferencesActivity;
 import nodomain.freeyourgadget.gadgetbridge.devices.miband.VibrationProfile;
 import nodomain.freeyourgadget.gadgetbridge.devices.pebble.PebbleColor;
 import nodomain.freeyourgadget.gadgetbridge.devices.pebble.PebbleIconID;
+import nodomain.freeyourgadget.gadgetbridge.entities.Device;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.ActivitySample;
 import nodomain.freeyourgadget.gadgetbridge.model.CallSpec;
@@ -81,6 +84,7 @@ import nodomain.freeyourgadget.gadgetbridge.util.WidgetPreferenceStorage;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.amazfitgts2.AmazfitGTS2MiniSupport;
 
 import nodomain.freeyourgadget.gadgetbridge.service.devices.miband.RealtimeSamplesSupport;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.HuamiSupport;
 
 
 import static android.content.Intent.EXTRA_SUBJECT;
@@ -91,7 +95,10 @@ public class DebugActivity extends AbstractGBActivity {
 
     private static final Logger LOG = LoggerFactory.getLogger(DebugActivity.class);
 
-    private int heartRate = 0;  //
+    private int heartRate = 0;  // realtime heart rate
+    private int steps = 0;      // realtime steps data
+    private int total_steps = 0;
+
     private RealtimeSamplesSupport realtimeSamplesSupport;
 
     private static final String EXTRA_REPLY = "reply";
@@ -109,8 +116,7 @@ public class DebugActivity extends AbstractGBActivity {
                     break;
                 }
                 case DeviceService.ACTION_REALTIME_SAMPLES:
-                    heartRate = handleRealtimeSample(intent.getSerializableExtra(DeviceService.EXTRA_REALTIME_SAMPLE));
-//                    GB.toast("Heart Rate :" + heartRate, Toast.LENGTH_SHORT, GB.INFO);
+                    handleRealtimeSample(intent.getSerializableExtra(DeviceService.EXTRA_REALTIME_SAMPLE));
                     break;
                 default:
                     LOG.info("ignoring intent action " + intent.getAction());
@@ -123,96 +129,21 @@ public class DebugActivity extends AbstractGBActivity {
     private Spinner sendTypeSpinner;
     private EditText editContent;
 
-//    private Thread thread_b;        // 심박 수 받아오는 쓰레드
-//    private Thread thread_a;
 
     private int handleRealtimeSample(Serializable extra) {  // void -> int 형으로 변환
         int t = 0;  // 심박수 저장
 
         if (extra instanceof ActivitySample) {
             ActivitySample sample = (ActivitySample) extra;
-            t = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
-//            GB.toast(this, "Heart Rate measured from sample: " + t, Toast.LENGTH_LONG, GB.INFO);
-
-//            synchronized (thread_b) {
-//                thread_b.notify();  // 쓰레드 notify, wait상태인 thread_a 깨움
-//            }
+            heartRate = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
+            steps =  sample.getSteps();
+            if(steps > -1){
+                total_steps += steps;
+            }
         }
         return t;
     }
 
-//
-//    private void vibe_thread() {
-//        thread_b = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                synchronized (this) {
-//                    // 심박수 받아옴
-//                    GBApplication.deviceService().onHeartRateTest();
-//                }
-//            }
-//        });
-
-//        Thread thread_a = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                thread_b.start();   // 심박수 측정 시작
-//                synchronized (thread_b) {
-//                    try {
-//                        GB.toast("thread waiting", Toast.LENGTH_LONG, GB.INFO);
-//                        thread_b.wait(); // 쓰레드 wait
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//                    // notify 이후의 행위
-////                    if (heartRate > 70) {
-////                        CallSpec callSpec = new CallSpec();
-////                        callSpec.command = CallSpec.CALL_INCOMING;
-////                        callSpec.number = editContent.getText().toString();
-////                        GBApplication.deviceService().onSetCallState(callSpec);
-////                    }
-//                    GB.toast("thread wake", Toast.LENGTH_LONG, GB.INFO);
-//
-////                    this.notify();
-//                }
-//            }
-//        });
-//
-//        thread_a.start();
-//    }
-
-    //    private void test() {
-//        vibe_thread();
-//    }
-//
-//    // period -> 기간, time -> 횟수
-//    private void vibration_timer(int period, final int time) {
-//        final Timer timer = new Timer();
-//        TimerTask Task = new TimerTask() {
-//            int cnt = 0;
-//
-//            @Override
-//            public void run() {
-//                // message
-//                if (cnt % 2 == 0) {
-//                    NotificationSpec notificationSpec = new NotificationSpec();
-//                    String testString = editContent.getText().toString();
-//                    notificationSpec.phoneNumber = "vibration";
-//                    notificationSpec.body = null;
-//                    notificationSpec.sender = "vibration";
-//                    notificationSpec.subject = null;
-//                    notificationSpec.type = NotificationType.values()[sendTypeSpinner.getSelectedItemPosition()];
-//                    notificationSpec.pebbleColor = notificationSpec.type.color;
-//                    GBApplication.deviceService().onNotification(notificationSpec);
-//                }
-//
-//                if (cnt++ >= time * 2) {
-//                    timer.cancel();
-//                }
-//            }
-//        };
-//        timer.schedule(Task, 0, period * 500);  // 0.5초 run() 실행
-//    }
     public class TimeThread extends Thread {
         @Override
         public void run() {
@@ -237,7 +168,8 @@ public class DebugActivity extends AbstractGBActivity {
         public boolean handleMessage(Message msg) {
             switch (msg.what) {
                 case 1:
-                    HRvalText.setText(heartRate + "bpm");
+                    HRvalText.setText("Heart rate: " + heartRate + "bpm");
+                    StepText.setText("Steps:" + total_steps);
                     break;
             }
             return false;
@@ -245,6 +177,7 @@ public class DebugActivity extends AbstractGBActivity {
     });
 
     TextView HRvalText;
+    TextView StepText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -257,36 +190,57 @@ public class DebugActivity extends AbstractGBActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(mReceiver, filter);
         registerReceiver(mReceiver, filter); // for ACTION_REPLY
 
+        editContent = findViewById(R.id.editContent);
+
+        ArrayList<String> spinnerArray = new ArrayList<>();
+        for (NotificationType notificationType : NotificationType.values()) {
+            spinnerArray.add(notificationType.name());
+        }
+        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, spinnerArray);
+        sendTypeSpinner = findViewById(R.id.sendTypeSpinner);
+        sendTypeSpinner.setAdapter(spinnerArrayAdapter);
 
         HRvalText = (TextView) findViewById(R.id.realtimeHR);
+        StepText = (TextView) findViewById(R.id.realtimeSteps);
         new TimeThread().start();
 
-//        editContent = findViewById(R.id.editContent);
+        Button vibrate_test = findViewById(R.id.vibrationButton);
+        vibrate_test.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v){
+                MiBandPreferencesActivity activity = new MiBandPreferencesActivity();
+                NotificationSpec spec = new NotificationSpec();
+//                spec.type = new NotificationType(1, (byte)0x01 );
+                spec.type = NotificationType.UNKNOWN;
+                activity.tryVibration(spec.type);
+            }
+        });
 
-//        ArrayList<String> spinnerArray = new ArrayList<>();
-//        for (NotificationType notificationType : NotificationType.values()) {
-//            spinnerArray.add(notificationType.name());
-//        }
-//        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, spinnerArray);
-//        sendTypeSpinner = findViewById(R.id.sendTypeSpinner);
-//        sendTypeSpinner.setAdapter(spinnerArrayAdapter);
+        Button sendButton = findViewById(R.id.sendButton);
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                NotificationSpec notificationSpec = new NotificationSpec();
+                String testString = editContent.getText().toString();
+                notificationSpec.phoneNumber = testString;
+                notificationSpec.body = testString;
+                notificationSpec.sender = testString;
+                notificationSpec.subject = testString;
+                notificationSpec.type = NotificationType.values()[sendTypeSpinner.getSelectedItemPosition()];
+                notificationSpec.pebbleColor = notificationSpec.type.color;
+                GBApplication.deviceService().onNotification(notificationSpec);
+            }
+        });
 
+        Button testSensorButton = findViewById(R.id.sensorButton);{
+            testSensorButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    testNewFunctionality();
+                }
+            });
+        }
 
-//        Button sendButton = findViewById(R.id.sendButton);
-//        sendButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//
-//                String testString = editContent.getText().toString();
-//                notificationSpec.phoneNumber = testString;
-//                notificationSpec.body = testString;
-//                notificationSpec.sender = testString;
-//                notificationSpec.subject = testString;
-//                notificationSpec.type = NotificationType.values()[sendTypeSpinner.getSelectedItemPosition()];
-//                notificationSpec.pebbleColor = notificationSpec.type.color;
-//                GBApplication.deviceService().onNotification(notificationSpec);
-//            }
-//        });
 //
 //        Button incomingCallButton = findViewById(R.id.incomingCallButton);
 //        incomingCallButton.setOnClickListener(new View.OnClickListener() {
@@ -300,8 +254,8 @@ public class DebugActivity extends AbstractGBActivity {
 //            }
 //        });
 //        realtimeHR.addte
+//        }
 
-//                NotificationSpec notificationSpec = new NotificationSpec();
 
 //        Button outgoingCallButton = findViewById(R.id.outgoingCallButton);
 //        outgoingCallButton.setOnClickListener(new View.OnClickListener() {
@@ -438,16 +392,16 @@ public class DebugActivity extends AbstractGBActivity {
 //        });
 //
 //
-//        // vibration test
+        // vibration test
 //        Button vibration = findViewById(R.id.vibration);
-////        vibration.setOnClickListener(new View.OnClickListener() {
-////            @Override
-////            public void onClick(View v) {
-////                //                vibration_timer(3,3);
-////            }
-////        });
-//
-//
+//        vibration.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                //                vibration_timer(3,3);
+//            }
+//        });
+
+
 //        vibration.setOnClickListener(new View.OnClickListener() {
 //            @Override
 //            public void onClick(View v) {
