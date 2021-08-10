@@ -1271,9 +1271,11 @@ public class MiBandSupport extends AbstractBTLEDeviceSupport {
             TransactionBuilder builder = performInitialized("Toggle sensor reading");
             if (isReadingSensorData) {
                 builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT), stopSensorRead);
+//                builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA), stopSensorRead);
                 isReadingSensorData = false;
             } else {
                 builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT), startSensorRead);
+//                builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA), startSensorRead);
                 isReadingSensorData = true;
             }
             builder.queue(getQueue());
@@ -1353,8 +1355,8 @@ public class MiBandSupport extends AbstractBTLEDeviceSupport {
                 zAxis = (zAxis / scale_factor) * gravity;
 
                 // Print results in log
-                LOG.info("READ SENSOR DATA VALUES: counter:"+counter+" step:"+step+" x-axis:"+ String.format("%.03f",xAxis)+" y-axis:"+String.format("%.03f",yAxis)+" z-axis:"+String.format("%.03f",zAxis)+";");
-//                LOG.debug("READ SENSOR DATA VALUES: counter:"+counter+" step:"+step+" x-axis:"+ String.format("%.03f",xAxis)+" y-axis:"+String.format("%.03f",yAxis)+" z-axis:"+String.format("%.03f",zAxis)+";");
+//                LOG.info("READ SENSOR DATA VALUES: counter:"+counter+" step:"+step+" x-axis:"+ String.format("%.03f",xAxis)+" y-axis:"+String.format("%.03f",yAxis)+" z-axis:"+String.format("%.03f",zAxis)+";");
+                LOG.debug("READ SENSOR DATA VALUES: counter:"+counter+" step:"+step+" x-axis:"+ String.format("%.03f",xAxis)+" y-axis:"+String.format("%.03f",yAxis)+" z-axis:"+String.format("%.03f",zAxis)+";");
             }
         }
     }

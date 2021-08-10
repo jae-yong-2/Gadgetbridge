@@ -97,8 +97,8 @@ public abstract class RealtimeSamplesSupport {
         if (delta < 0) {
             return 0;
         }
-        return delta;
-//        return lastSteps;
+//        return delta;
+        retu`rn steps;   // total steps per day
     }
 
     public synchronized int getTotalStep(){

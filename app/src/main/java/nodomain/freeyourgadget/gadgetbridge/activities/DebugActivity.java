@@ -138,7 +138,7 @@ public class DebugActivity extends AbstractGBActivity {
             heartRate = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
             steps =  sample.getSteps();
             if(steps > -1){
-                total_steps += steps;
+                total_steps = steps;
             }
         }
         return t;
@@ -150,7 +150,7 @@ public class DebugActivity extends AbstractGBActivity {
             super.run();
             do {
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(1000);
                     Message msg = new Message();
                     msg.what = 1;
                     handler.sendMessage(msg);
@@ -445,13 +445,13 @@ public class DebugActivity extends AbstractGBActivity {
 //            }
 //        });
 //
-//        Button testNewFunctionalityButton = findViewById(R.id.testNewFunctionality);
-//        testNewFunctionalityButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                testNewFunctionality();
-//            }
-//        });
+        Button testNewFunctionalityButton = findViewById(R.id.testNewFunctionality);
+        testNewFunctionalityButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                testNewFunctionality();
+            }
+        });
 //
 //        Button shareLogButton = findViewById(R.id.shareLog);
 //        shareLogButton.setOnClickListener(new View.OnClickListener() {

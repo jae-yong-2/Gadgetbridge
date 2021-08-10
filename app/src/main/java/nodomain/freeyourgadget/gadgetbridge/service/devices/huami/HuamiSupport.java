@@ -191,6 +191,7 @@ import static nodomain.freeyourgadget.gadgetbridge.model.ActivityUser.PREF_USER_
 import static nodomain.freeyourgadget.gadgetbridge.model.ActivityUser.PREF_USER_WEIGHT_KG;
 import static nodomain.freeyourgadget.gadgetbridge.model.ActivityUser.PREF_USER_YEAR_OF_BIRTH;
 import static nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic.UUID_CHARACTERISTIC_ALERT_LEVEL;
+import static nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic.UUID_CHARACTERISTIC_SENSOR_LOCATION;
 
 public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
@@ -1293,6 +1294,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         BluetoothGattCharacteristic characteristic = getCharacteristic(UUID_CHARACTERISTIC_ALERT_LEVEL);
         try {
             TransactionBuilder builder = performInitialized("Vibrate once");
+
             builder.write(characteristic, new byte[]{3});
             builder.write(characteristic, new byte[]{3});
             builder.queue(getQueue());
@@ -1650,6 +1652,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         }
         // added for acc data -------------------------
         else if (MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA.equals(characteristicUUID)) {
+            GB.toast(this.getContext(), "sensor uuid detected",Toast.LENGTH_LONG ,GB.INFO);
             handleSensorData(characteristic.getValue());
         }
         //---------------------------------------------
@@ -1829,23 +1832,24 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             realtimeSamplesSupport = new RealtimeSamplesSupport(1000, 1000) {
                 @Override
                 public void doCurrentSample() {
-//                    //added for acc data
+                    //added for acc data
 //                    try {
 //                        TransactionBuilder builder = performInitialized("Toggle sensor reading");
-//                        builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT), startSensorRead);
+//                        builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA), startSensorRead);
 //                        builder.queue(getQueue());
 //                    } catch (IOException e) {
 //                        LOG.debug("SENSOR READ FAIL");
 //                    }
-                    try {
-                        if(HuamiSupport.super.isConnected()){
-                            TransactionBuilder builder = performInitialized("Continue heart rate measurement");
-                            builder.write(characteristicHRControlPoint, continueHeartMeasurementContinuous);
-                            builder.queue(getQueue());
-                        }else{
-                        }
-                    } catch (IOException e) {
-                    }
+//
+//                    try {
+//                        if(HuamiSupport.super.isConnected()){
+//                            TransactionBuilder builder = performInitialized("Continue heart rate measurement");
+//                            builder.write(characteristicHRControlPoint, continueHeartMeasurementContinuous);
+//                            builder.queue(getQueue());
+//                        }else{
+//                        }
+//                    } catch (IOException e) {
+//                    }
 
                     try (DBHandler handler = GBApplication.acquireDB()) {
                         DaoSession session = handler.getDaoSession();
@@ -1870,9 +1874,6 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                         /*-------------------------------------*/
 //                        sample.setHeartRate(getHeartrateBpm());
 
-
-
-
                         sample.setSteps(getSteps());
                         sample.setRawIntensity(ActivitySample.NOT_MEASURED);
                         sample.setRawKind(HuamiConst.TYPE_ACTIVITY); // to make it visible in the charts TODO: add a MANUAL kind for that?
@@ -1886,6 +1887,11 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                         sample.setSteps(getSteps());
 //                        sample.setSteps(Hu)
 
+                        /*-------------------------------------*/
+                        // vibrate once when sensing step count
+//                        if(sample.getSteps() > 0){
+//                            vibrateOnce();
+//                        }
 
                         if (LOG.isDebugEnabled()) {
                             LOG.debug("realtime sample: " + sample);
@@ -3049,9 +3055,9 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         setExposeHRThridParty(builder);
         setHeartrateMeasurementInterval(builder, getHeartRateMeasurementInterval());
         requestAlarms(builder);
-
         onEnableRealtimeHeartRateMeasurement(true);
         onEnableRealtimeSteps(true);
+        onEnableGetSensorData(true);
     }
 
 
@@ -3112,15 +3118,38 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
                 // Print results in log
 //                LOG.info("READ SENSOR DATA VALUES: counter:" + counter + " step:" + step + " x-axis:" + String.format("%.03f", xAxis) + " y-axis:" + String.format("%.03f", yAxis) + " z-axis:" + String.format("%.03f", zAxis) + ";");
-                LOG.debug("READ SENSOR DATA VALUES: counter:" + counter + " step:" + step + " x-axis:" + String.format("%.03f", xAxis) + " y-axis:" + String.format("%.03f", yAxis) + " z-axis:" + String.format("%.03f", zAxis) + ";");
+                LOG.debug("READ SENSOR DATA VALUES: counter:" + counter + " step`:" + step + " x-axis:" + String.format("%.03f", xAxis) + " y-axis:" + String.format("%.03f", yAxis) + " z-axis:" + String.format("%.03f", zAxis) + ";");
             }
         }
     }
 
+    public void onEnableGetSensorData(boolean enable){
+        if(characteristicChunked == null){
+            return;
+        }
+
+        BluetoothGattCharacteristic characteristic = getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA);
+
+        try{
+            TransactionBuilder builder = performInitialized("Enable realtime acc sensor measurement");
+
+            if(enable){
+
+                LOG.debug("Realtime acc sensor measurement enabled");
+
+//                builder.write(characteristic, stopSensorRead);
+                builder.write(characteristic, startSensorRead);
+//                builder.read(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA));
+            }
+//            builder.notify(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA), enable);
+            builder.queue(getQueue());
+            enableRealtimeSamplesTimer(enable);
+        }catch ( IOException ex){
+            LOG.error("Unable to enable realtime acc sensor measurement", ex);
+        }
+    }
     private int getHeartRateMeasurementInterval() {
-
-        GB.toast(getContext(), "measurement interval:" + GBApplication.getPrefs().getInt("heartrate_measurement_interval", 0) / 60, Toast.LENGTH_LONG, GB.INFO);
-
+//        GB.toast(getContext(), "measurement interval:" + GBApplication.getPrefs().getInt("heartrate_measurement_interval", 0) / 60, Toast.LENGTH_LONG, GB.INFO);
         return GBApplication.getPrefs().getInt("heartrate_measurement_interval", 0) / 60;
     }
 
