@@ -98,7 +98,7 @@ public abstract class RealtimeSamplesSupport {
             return 0;
         }
 //        return delta;
-        retu`rn steps;   // total steps per day
+        return steps;   // total steps per day
     }
 
     public synchronized int getTotalStep(){
