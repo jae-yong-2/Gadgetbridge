@@ -19,15 +19,21 @@ package nodomain.freeyourgadget.gadgetbridge.activities;
 
 import android.Manifest;
 import android.annotation.TargetApi;
+import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.view.MenuItem;
@@ -35,11 +41,13 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
@@ -50,6 +58,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -64,9 +75,11 @@ import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.adapter.GBDeviceAdapterv2;
 import nodomain.freeyourgadget.gadgetbridge.devices.DeviceManager;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.HuamiSupport;
 import nodomain.freeyourgadget.gadgetbridge.util.AndroidUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
+import nodomain.freeyourgadget.gadgetbridge.Logging;
 
 //TODO: extend AbstractGBActivity, but it requires actionbar that is not available
 public class ControlCenterv2 extends AppCompatActivity
@@ -74,6 +87,7 @@ public class ControlCenterv2 extends AppCompatActivity
 
     public static final int MENU_REFRESH_CODE = 1;
     private static PhoneStateListener fakeStateListener;
+    private static final Logger LOG = LoggerFactory.getLogger(DebugActivity.class);
 
     //needed for KK compatibility
     static {
@@ -104,11 +118,18 @@ public class ControlCenterv2 extends AppCompatActivity
     };
     private boolean pesterWithPermissions = true;
 
+
+    //added
+    Handler mHandler;
+    private final String DEFAULT = "DEFAULT";
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         AbstractGBActivity.init(this, AbstractGBActivity.NO_ACTIONBAR);
 
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_controlcenterv2);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -224,11 +245,93 @@ public class ControlCenterv2 extends AppCompatActivity
         } else {
             GBApplication.deviceService().requestDeviceInfo();
         }
+
+        //added
+        final boolean[] flag = {false};
+        mHandler = new Handler();
+        createNotificationChannel(DEFAULT, "default channel", NotificationManager.IMPORTANCE_HIGH);
+
+        Intent intent = new Intent(this, ControlCenterv2.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+
+        new Thread(new Runnable() {
+            int count = 0;
+            int total_step = 0;
+
+
+            @Override
+            public void run() {
+
+                while (true) {
+                    LOG.debug("test heart: " + HuamiSupport.HEART_RATE);
+                    LOG.debug("test step: " + HuamiSupport.STEP);
+
+                    if (HuamiSupport.HEART_RATE > 0 && HuamiSupport.STEP <= 10) {  // 심장 박동 감지 됨
+
+                        if(count < 1) {
+                            mHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    createNotification(DEFAULT, 1956, "운동하세요", "어깨 돌리기 10회 이상 실시!", intent);
+                                    count++;
+                                }
+                            });
+                        }
+                    }
+
+                    if(HuamiSupport.STEP >= 10){
+                        destroyNotification(1956);
+                    }
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
+
+
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    void createNotificationChannel(String channelID, String channelName, int importance){
+        if(Build.VERSION.SDK_INT >= (Build.VERSION_CODES.BASE-1)){
+            NotificationManager notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+            notificationManager.createNotificationChannel(new NotificationChannel(channelID, channelName, importance));
+        }
+    }
+
+    void createNotification(String channelID, int id, String title, String text, Intent intent){
+        PendingIntent pendingIntent = PendingIntent.getActivities(this, 0, new Intent[]{intent}, PendingIntent.FLAG_CANCEL_CURRENT);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelID)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setContentIntent(pendingIntent)
+//                .addAction(R.drawable.ic_launcher_foreground, getString(R.string.action_quit), pendingIntent)
+
+                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE)
+                .setAutoCancel(true);
+
+        NotificationManager notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.notify(id, builder.build());
+    }
+
+    void destroyNotification(int id){
+        NotificationManager notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.cancel(id);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
         if (isLanguageInvalid) {
             isLanguageInvalid = false;
             recreate();

@@ -46,6 +46,7 @@ public class MiBandService {
     public static final UUID UUID_CHARACTERISTIC_USER_INFO = UUID.fromString(String.format(BASE_UUID, "FF04"));
 
     public static final UUID UUID_CHARACTERISTIC_CONTROL_POINT = UUID.fromString(String.format(BASE_UUID, "FF05"));
+//    public static final UUID UUID_CHARACTERISTIC_CONTROL_POINT = UUID.fromString(String.format(BASE_UUID, "FF00"));
 
     public static final UUID UUID_CHARACTERISTIC_REALTIME_STEPS = UUID.fromString(String.format(BASE_UUID, "FF06"));
 
@@ -186,7 +187,7 @@ public class MiBandService {
     public static final byte COMMAND_SET__HR_CONTINUOUS = 0x1;
     public static final byte COMMAND_SET_HR_MANUAL = 0x2;
 
-    public static final byte COMMAND_GET_SENSOR_DATA = 0x12;
+    public static final byte COMMAND_GET_SENSOR_DATA = 0x18;
 
     /* FURTHER COMMANDS: unchecked therefore left commented
 

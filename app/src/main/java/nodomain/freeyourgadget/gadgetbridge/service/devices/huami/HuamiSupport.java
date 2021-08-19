@@ -19,19 +19,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.service.devices.huami;
 
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.widget.Toast;
-
-import java.util.Formatter;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -42,7 +38,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -66,7 +61,6 @@ import cyanogenmod.weather.util.WeatherUtils;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.Logging;
 import nodomain.freeyourgadget.gadgetbridge.R;
-import nodomain.freeyourgadget.gadgetbridge.activities.DataManagementActivity;
 import nodomain.freeyourgadget.gadgetbridge.activities.SettingsActivity;
 import nodomain.freeyourgadget.gadgetbridge.database.DBHandler;
 import nodomain.freeyourgadget.gadgetbridge.database.DBHelper;
@@ -120,14 +114,12 @@ import nodomain.freeyourgadget.gadgetbridge.service.btle.BLETypeConversions;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.BtLEAction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.GattService;
-import nodomain.freeyourgadget.gadgetbridge.service.btle.Transaction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.TransactionBuilder;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.actions.AbortTransactionAction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.actions.ConditionalWriteAction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.actions.SetDeviceStateAction;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.IntentListener;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.alertnotification.AlertCategory;
-import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.alertnotification.AlertLevel;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.alertnotification.AlertNotificationProfile;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.alertnotification.NewAlert;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.profiles.deviceinfo.DeviceInfoProfile;
@@ -140,22 +132,15 @@ import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.operations.Ini
 import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.operations.UpdateFirmwareOperation;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.miband.NotificationStrategy;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.miband.RealtimeSamplesSupport;
-import nodomain.freeyourgadget.gadgetbridge.service.devices.qhybrid.requests.misfit.VibrateRequest;
 import nodomain.freeyourgadget.gadgetbridge.service.serial.GBDeviceProtocol;
 import nodomain.freeyourgadget.gadgetbridge.util.AlarmUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.DeviceHelper;
-import nodomain.freeyourgadget.gadgetbridge.util.FileUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.GBPrefs;
-import nodomain.freeyourgadget.gadgetbridge.util.ImportExportSharedPreferences;
 import nodomain.freeyourgadget.gadgetbridge.util.NotificationUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
 import nodomain.freeyourgadget.gadgetbridge.util.StringUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.Version;
-
-import nodomain.freeyourgadget.gadgetbridge.activities.DataManagementActivity;
-import nodomain.freeyourgadget.gadgetbridge.util.ImportExportSharedPreferences;
-import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
 
 
 import static nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSettingsPreferenceConst.PREF_ALLOW_HIGH_MTU;
@@ -191,7 +176,7 @@ import static nodomain.freeyourgadget.gadgetbridge.model.ActivityUser.PREF_USER_
 import static nodomain.freeyourgadget.gadgetbridge.model.ActivityUser.PREF_USER_WEIGHT_KG;
 import static nodomain.freeyourgadget.gadgetbridge.model.ActivityUser.PREF_USER_YEAR_OF_BIRTH;
 import static nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic.UUID_CHARACTERISTIC_ALERT_LEVEL;
-import static nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic.UUID_CHARACTERISTIC_SENSOR_LOCATION;
+
 
 public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
@@ -236,6 +221,13 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
     protected int mActivitySampleSize = 4;
 
     private Timer punchTimer = new Timer();
+
+    //added for sensor data
+    private volatile boolean isReadingSensorData;
+
+    public static int HEART_RATE = -1;
+    public static int STEP_TIMER = -10;
+    public static int STEP = -1;
 
 
     public HuamiSupport() {
@@ -379,6 +371,17 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         builder.notify(getCharacteristic(HuamiService.UUID_CHARACTERISTIC_AUDIO), enable);
         builder.notify(getCharacteristic(HuamiService.UUID_CHARACTERISTIC_AUDIODATA), enable);
         builder.notify(getCharacteristic(HuamiService.UUID_CHARACTERISTIC_DEVICEEVENT), enable);
+
+        //added
+//        builder.notify(getCharacteristic(UUID.fromString(String.format("00000002-0000-3512-2118-0009af100700", "FEE0"))), enable);
+//        builder.notify(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA), enable);
+//        builder.notify(getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC0), enable);
+//        builder.notify(getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC1), enable);
+        builder.notify(getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC2), enable);       // notify for acc sensor data
+//        builder.notify(getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC4), enable);
+//        builder.notify(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT), enable);
+//        builder.notify(getCharacteristic(HuamiService.UUID_SERVICE_MIBAND2_SERVICE), enable);
+//        builder.notify(getCharacteristic(HuamiService.UUID_SERVICE_MIBAND_SERVICE), enable);
 
         return this;
     }
@@ -1650,13 +1653,52 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             handleConfigurationInfo(characteristic.getValue());
             return true;
         }
+
         // added for acc data -------------------------
-        else if (MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA.equals(characteristicUUID)) {
-            GB.toast(this.getContext(), "sensor uuid detected",Toast.LENGTH_LONG ,GB.INFO);
+        else if (HuamiService.UUID_UNKNOWN_CHARACTERISTIC2.equals(characteristicUUID)) {
             handleSensorData(characteristic.getValue());
+            GB.toast(this.getContext(), "sensor uuid detected from sensor data2 ", Toast.LENGTH_LONG, GB.INFO);
+            return true;
         }
+//        else if (HuamiService.UUID_UNKNOWN_CHARACTERISTIC0.equals(characteristicUUID)) {
+////        else if (UUID.fromString("00002a39-0000-1000-8000-00805f9b34fb").equals(characteristicUUID)) {
+//            handleSensorData(characteristic.getValue());
+//            GB.toast(this.getContext(), "sensor uuid detected from CHAR_0", Toast.LENGTH_LONG, GB.INFO);
+//            return true;
+//        }
+//        else if (MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT.equals(characteristicUUID)) {
+//            handleSensorData(characteristic.getValue());
+//            GB.toast(this.getContext(), "sensor uuid detected from control point", Toast.LENGTH_LONG, GB.INFO);
+//            return true;
+//        } else if (HuamiService.UUID_SERVICE_MIBAND_SERVICE.equals(characteristicUUID)) {
+//            handleSensorData(characteristic.getValue());
+//            GB.toast(this.getContext(), "sensor uuid detected from miband service ", Toast.LENGTH_LONG, GB.INFO);
+//            return true;
+//        } else if (HuamiService.UUID_SERVICE_MIBAND2_SERVICE.equals(characteristicUUID)){
+//            handleSensorData(characteristic.getValue());
+//            GB.toast(this.getContext(), "sensor uuid detected from miband2 service", Toast.LENGTH_LONG, GB.INFO);
+//            return true;
+//        }
+//        else if (HuamiService.UUID_UNKNOWN_CHARACTERISTIC1.equals(characteristicUUID)) {
+//            handleSensorData(characteristic.getValue());
+//            GB.toast(this.getContext(), "sensor uuid detected from characteristic1", Toast.LENGTH_LONG, GB.INFO);
+//            return true;
+//        }
+//        else if (HuamiService.UUID_UNKNOWN_CHARACTERISTIC2.equals(characteristicUUID)){
+//            handleSensorData(characteristic.getValue());
+//            GB.toast(this.getContext(), "sensor uuid detected from CHAR_2", Toast.LENGTH_LONG, GB.INFO);
+//            return true;
+//        }
+//        else if (HuamiService.UUID_UNKNOWN_CHARACTERISTIC4.equals(characteristicUUID)){
+//            GB.toast(this.getContext(), "sensor uuid detected from CHAR_4", Toast.LENGTH_LONG, GB.INFO);
+//            handleSensorData(characteristic.getValue());
+//            return true;
+//        }
         //---------------------------------------------
         else {
+//            GB.toast(this.getContext(), "sensor uuid detected",Toast.LENGTH_LONG ,GB.INFO);
+//            handleSensorData(characteristic.getValue());
+//            return true;
             LOG.info("Unhandled characteristic changed: " + characteristicUUID);
             logMessageContent(characteristic.getValue());
         }
@@ -1702,7 +1744,26 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             logMessageContent(characteristic.getValue());
             return true;
         }
+        // added
+        else if (MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT.equals(characteristicUUID)) {
+            handleControlPointResult(characteristic.getValue(), status);
+        }
         return false;
+    }
+
+    private void handleControlPointResult(byte[] value, int status) {
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            LOG.warn("Could not write to the control point.");
+        }
+        LOG.info("handleControlPoint write status:" + status + "; length: " + (value != null ? value.length : "(null)"));
+
+        if (value != null) {
+            for (byte b : value) {
+                LOG.info("handleControlPoint WROTE DATA:" + String.format("0x%8x", b));
+            }
+        } else {
+            LOG.warn("handleControlPoint WROTE null");
+        }
     }
 
     public void logHeartrate(byte[] value, int status) {
@@ -1807,6 +1868,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         }
     }
 
+
     protected void enableRealtimeSamplesTimer(boolean enable) {
         if (enable) {
             getRealtimeSamplesSupport().start();
@@ -1827,29 +1889,39 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         return sample;
     }
 
+
+    int steps = 0;
+
+    private void notifyDialog() {
+//        @WorkerThread
+//        void workerTrhead(){
+//        }
+    }
+
     private RealtimeSamplesSupport getRealtimeSamplesSupport() {
+
         if (realtimeSamplesSupport == null) {
             realtimeSamplesSupport = new RealtimeSamplesSupport(1000, 1000) {
                 @Override
                 public void doCurrentSample() {
-                    //added for acc data
+//                    //added for acc data
 //                    try {
 //                        TransactionBuilder builder = performInitialized("Toggle sensor reading");
-//                        builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA), startSensorRead);
+//                        builder.write(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT), startSensorRead);
 //                        builder.queue(getQueue());
 //                    } catch (IOException e) {
 //                        LOG.debug("SENSOR READ FAIL");
 //                    }
-//
-//                    try {
-//                        if(HuamiSupport.super.isConnected()){
-//                            TransactionBuilder builder = performInitialized("Continue heart rate measurement");
-//                            builder.write(characteristicHRControlPoint, continueHeartMeasurementContinuous);
-//                            builder.queue(getQueue());
-//                        }else{
-//                        }
-//                    } catch (IOException e) {
-//                    }
+                    // added for realtime heart rate measure
+                    try {
+                        if (HuamiSupport.super.isConnected()) {
+                            TransactionBuilder builder = performInitialized("Continue heart rate measurement");
+                            builder.write(characteristicHRControlPoint, continueHeartMeasurementContinuous);
+                            builder.queue(getQueue());
+                        } else {
+                        }
+                    } catch (IOException e) {
+                    }
 
                     try (DBHandler handler = GBApplication.acquireDB()) {
                         DaoSession session = handler.getDaoSession();
@@ -1873,19 +1945,40 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                         LOG.debug("previous HR : " + sample.getHeartRate() + ", previous HR : " + getHeartrateBpm());
                         /*-------------------------------------*/
 //                        sample.setHeartRate(getHeartrateBpm());
+                        if (sample.getSteps() > -1) {
+                            steps += sample.getSteps();
+                        }
+
+                        HEART_RATE = sample.getHeartRate();
+
+//                        if (steps % 10 < 2) {
+//                            notifyDialog();
+////                            DebugActivity.notifi(getContext());
+//                        }
+//                        if(getSteps() > 0){
+
+//                            new AlertDialog.Builder(getContext())
+//                                    .setMessage("test")
+//                                    .setPositiveButton("dismiss", new DialogInterface.OnClickListener() {
+//                                        @Override
+//                                        public void onClick(DialogInterface dialog, int which) {
+//                                            GB.toast(getContext(),"pressed", GB.INFO,Toast.LENGTH_LONG);
+//                                        }
+//                                    }).show();
+//                        }
+
 
                         sample.setSteps(getSteps());
                         sample.setRawIntensity(ActivitySample.NOT_MEASURED);
                         sample.setRawKind(HuamiConst.TYPE_ACTIVITY); // to make it visible in the charts TODO: add a MANUAL kind for that?
 
                         provider.addGBActivitySample(sample);
-
                         // set the steps only afterwards, since realtime steps are also recorded
                         // in the regular samples and we must not count them twice
                         // Note: we know that the DAO sample is never committed again, so we simply
                         // change the value here in memory.
+
                         sample.setSteps(getSteps());
-//                        sample.setSteps(Hu)
 
                         /*-------------------------------------*/
                         // vibrate once when sensing step count
@@ -1893,20 +1986,38 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 //                            vibrateOnce();
 //                        }
 
+                        STEP = sample.getSteps();
+//                        STEP_TIMER++;
+//                        if(STEP_TIMER == -1){
+//                            beforeStep = step;
+//                        }
+//                        if(STEP_TIMER < 39){
+//                            if(beforeStep != 0 && step - beforeStep > 10){
+//                                start = 1;
+//                            }
+//                        } else if(STEP_TIMER == 40){
+//                            start = 1;
+//                        }
+//                        else if (STEP_TIMER == 3600){
+//                            start = 0;
+//                            if(beforeStep != 0 && step - beforeStep < 10 && sample.getHeartRate() > 40){
+//                                // vibrate
+//                            }
+//                            beforeStep = step;
+//                            STEP_TIMER = -1;
+//                        }
+
                         if (LOG.isDebugEnabled()) {
                             LOG.debug("realtime sample: " + sample);
                             LOG.debug("realtime heart: " + sample.getHeartRate() + ", intensity : " + sample.getIntensity() + ", raw intensity : " + sample.getIntensity() + ", step : " + sample.getSteps() + ", kind : " + sample.getKind(), ", raw kind : " + sample.getRawKind());
-                            // added for step count
-                            /*-------------------------------------*/
-                            LOG.debug("realtime step from getRealtimeSampleSupport : " + getRealtimeSamplesSupport().getSteps());
-                            LOG.debug("realtime step from sample : " + sample.getSteps());
-                            LOG.debug("realtime step total: " + this.steps);
-                            /*-------------------------------------*/
+//                            // added for step count
+//                            /*-------------------------------------*/
+//                            LOG.debug("realtime step from getRealtimeSampleSupport : " + getRealtimeSamplesSupport().getSteps());
+//                            LOG.debug("realtime step from sample : " + sample.getSteps());
+//                            LOG.debug("realtime step total : " + this.steps);
+//                            /*-------------------------------------*/
                         }
 
-                        Intent intent = new Intent(DeviceService.ACTION_REALTIME_SAMPLES)
-                                .putExtra(DeviceService.EXTRA_REALTIME_SAMPLE, sample);
-                        LocalBroadcastManager.getInstance(getContext()).sendBroadcast(intent);
 
                     } catch (Exception e) {
                         LOG.warn("Unable to acquire db for saving realtime samples", e);
@@ -1916,6 +2027,10 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         }
         return realtimeSamplesSupport;
     }
+
+    private int beforeStep = 0;
+    private int step = 0;
+    private int start = -1;
 
     private void handleDeviceName(byte[] value, int status) {
 //        if (status == BluetoothGatt.GATT_SUCCESS) {
@@ -2199,6 +2314,12 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
     }
 
+    // added for acc data
+    private static final byte[] startSensorRead = new byte[]{0x07, 0x27, 0x00, (byte) 0xac, 0x46, (byte) 0x93, 0x00, 0x00, 0x00, 0x00, 0x00};
+    //    private static final byte[] startSensorRead = new byte[]{MiBandService.COMMAND_GET_SENSOR_DATA, 1};
+    private static final byte[] stopSensorRead = new byte[]{MiBandService.COMMAND_GET_SENSOR_DATA, 0};
+//    private static final byte[] stopSensorRead = new byte[]{MiBandService.COMMAND_GET_SENSOR_DATA, 0};
+
     @Override
     public void onTestNewFunction() {
         /*
@@ -2211,6 +2332,42 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             builder.queue(getQueue());
         } catch (Exception ignored) {}
         */
+
+        try {
+            TransactionBuilder builder = performInitialized("Toggle sensor reading");
+//            BluetoothGattCharacteristic characteristic = getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC1);
+//            BluetoothGattCharacteristic characteristic = getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC4);
+            BluetoothGattCharacteristic characteristic = getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC2);
+//            BluetoothGattCharacteristic characteristic = getCharacteristic(UUID.fromString("0000ff0e-0000-1000-8000-00805f9b34fb"));
+//            BluetoothGattCharacteristic characteristic = getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC2);
+//            BluetoothGattCharacteristic characteristic = getCharacteristic(HuamiService.UUID_SERVICE_MIBAND_SERVICE);
+//            BluetoothGattCharacteristic characteristic = getCharacteristic(HuamiService.UUID_SERVICE_MIBAND2_SERVICE);
+//            BluetoothGattCharacteristic characteristic = getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA);
+            if (isReadingSensorData) {
+                builder.write(characteristic, stopSensorRead);
+//                builder.write(characteristic, stopSensorRead);
+                isReadingSensorData = false;
+            } else {
+//                builder.write(characteristic, new byte[]{0x12, 1});
+                builder.write(characteristic, new byte[]{0x18, 0});
+//                builder.write(characteristic,startSensorRead);
+                isReadingSensorData = true;
+            }
+            builder.queue(getQueue());
+        } catch (IOException ex) {
+            LOG.error("Unable to toggle sensor reading MI", ex);
+        }
+
+//        try{
+//            TransactionBuilder builder = performInitialized("Toggle sensor reading");
+//            builder.write(getCharacteristic(UUID.fromString("00000001-0000-3512-2118-0009af100700")), new byte[]{0x01,0x01,0x19});
+//            builder.write(getCharacteristic(UUID.fromString("00000001-0000-3512-2118-0009af100700")), new byte[]{0x02});
+////            builder.notify(getCharacteristic(UUID.fromString("00000002-0000-3512-2118-0009af100700"new byte[]{0x01,0x00});
+//            builder.queue(getQueue());
+//
+//        } catch (IOException ex){
+//            LOG.error("unable to toggle sensor reading MI", ex);
+//        }
     }
 
     @Override
@@ -2877,7 +3034,6 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         return this;
     }
 
-
     protected HuamiSupport setLanguage(TransactionBuilder builder) {
         String localeString = GBApplication.getDeviceSpecificSharedPrefs(gbDevice.getAddress()).getString("language", "auto");
         if (localeString == null || localeString.equals("auto")) {
@@ -2925,7 +3081,6 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
         return this;
     }
-
 
     private HuamiSupport setExposeHRThridParty(TransactionBuilder builder) {
         boolean enable = HuamiCoordinator.getExposeHRThirdParty(gbDevice.getAddress());
@@ -3058,16 +3213,12 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         onEnableRealtimeHeartRateMeasurement(true);
         onEnableRealtimeSteps(true);
         onEnableGetSensorData(true);
+
     }
 
 
     //added
     private static final byte[] continueHeartMeasurementContinuous = new byte[]{0x16};
-
-    // added for acc data
-    private static final byte[] startSensorRead = new byte[]{MiBandService.COMMAND_GET_SENSOR_DATA, 1};
-    private static final byte[] stopSensorRead = new byte[]{MiBandService.COMMAND_GET_SENSOR_DATA, 0};
-
 
     private static void handleSensorData(byte[] value) {
         int counter = 0, step = 0;
@@ -3123,20 +3274,19 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         }
     }
 
-    public void onEnableGetSensorData(boolean enable){
-        if(characteristicChunked == null){
+    public void onEnableGetSensorData(boolean enable) {
+        if (characteristicChunked == null) {
             return;
         }
 
-        BluetoothGattCharacteristic characteristic = getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA);
+        BluetoothGattCharacteristic characteristic = getCharacteristic(MiBandService.UUID_CHARACTERISTIC_CONTROL_POINT);
+//        BluetoothGattCharacteristic characteristic = getCharacteristic(HuamiService.UUID_UNKNOWN_CHARACTERISTIC1);
 
-        try{
+        try {
             TransactionBuilder builder = performInitialized("Enable realtime acc sensor measurement");
 
-            if(enable){
-
+            if (enable) {
                 LOG.debug("Realtime acc sensor measurement enabled");
-
 //                builder.write(characteristic, stopSensorRead);
                 builder.write(characteristic, startSensorRead);
 //                builder.read(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA));
@@ -3144,10 +3294,11 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 //            builder.notify(getCharacteristic(MiBandService.UUID_CHARACTERISTIC_SENSOR_DATA), enable);
             builder.queue(getQueue());
             enableRealtimeSamplesTimer(enable);
-        }catch ( IOException ex){
+        } catch (IOException ex) {
             LOG.error("Unable to enable realtime acc sensor measurement", ex);
         }
     }
+
     private int getHeartRateMeasurementInterval() {
 //        GB.toast(getContext(), "measurement interval:" + GBApplication.getPrefs().getInt("heartrate_measurement_interval", 0) / 60, Toast.LENGTH_LONG, GB.INFO);
         return GBApplication.getPrefs().getInt("heartrate_measurement_interval", 0) / 60;

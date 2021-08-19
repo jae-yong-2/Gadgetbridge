@@ -16,10 +16,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.service.devices.miband;
 
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.widget.Toast;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
 import nodomain.freeyourgadget.gadgetbridge.model.ActivitySample;
+import nodomain.freeyourgadget.gadgetbridge.util.GB;
 
 /**
  * Basic support for aggregating different sources of realtime data that comes in in a mostly
@@ -97,8 +103,8 @@ public abstract class RealtimeSamplesSupport {
         if (delta < 0) {
             return 0;
         }
-//        return delta;
-        return steps;   // total steps per day
+        return delta;
+//        return steps;   // total steps per day
     }
 
     public synchronized int getTotalStep(){

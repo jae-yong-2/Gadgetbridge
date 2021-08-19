@@ -98,6 +98,10 @@ public class DebugActivity extends AbstractGBActivity {
     private int heartRate = 0;  // realtime heart rate
     private int steps = 0;      // realtime steps data
     private int total_steps = 0;
+    private int prev_total_steps = -1;
+    private int step_count = 0;
+
+    private boolean flag = true;
 
     private RealtimeSamplesSupport realtimeSamplesSupport;
 
@@ -130,6 +134,10 @@ public class DebugActivity extends AbstractGBActivity {
     private EditText editContent;
 
 
+    private void test(){
+        GB.toast("back test", GB.INFO, Toast.LENGTH_LONG);
+    }
+
     private int handleRealtimeSample(Serializable extra) {  // void -> int 형으로 변환
         int t = 0;  // 심박수 저장
 
@@ -137,11 +145,29 @@ public class DebugActivity extends AbstractGBActivity {
             ActivitySample sample = (ActivitySample) extra;
             heartRate = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
             steps =  sample.getSteps();
+
+            if (heartRate > 0){
+                test();
+            }
+
             if(steps > -1){
+                prev_total_steps = total_steps;
                 total_steps = steps;
             }
         }
         return t;
+    }
+
+    public static void notifi(Context context){
+        new AlertDialog.Builder(context)
+                                .setMessage("Test")
+                                .setPositiveButton("dismiss", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        GB.toast("pressed", GB.INFO, Toast.LENGTH_LONG);
+//                                        flag = false;
+                                    }
+                                }).show();
     }
 
     public class TimeThread extends Thread {
@@ -150,7 +176,7 @@ public class DebugActivity extends AbstractGBActivity {
             super.run();
             do {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                     Message msg = new Message();
                     msg.what = 1;
                     handler.sendMessage(msg);
@@ -166,10 +192,22 @@ public class DebugActivity extends AbstractGBActivity {
     private Handler handler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
+
             switch (msg.what) {
                 case 1:
                     HRvalText.setText("Heart rate: " + heartRate + "bpm");
                     StepText.setText("Steps:" + total_steps);
+//                    if (flag){
+//                        new AlertDialog.Builder(DebugActivity.this)
+//                                .setMessage("Test")
+//                                .setPositiveButton("dismiss", new DialogInterface.OnClickListener() {
+//                                    @Override
+//                                    public void onClick(DialogInterface dialog, int which) {
+//                                        GB.toast("pressed", GB.INFO, Toast.LENGTH_LONG);
+//                                        flag = false;
+//                                    }
+//                                }).show();
+//                    }
                     break;
             }
             return false;
