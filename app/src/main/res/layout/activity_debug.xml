@@ -91,9 +91,18 @@
                 android:id="@+id/sensorButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="fill_horizontal"
-                android:text="Sensor"
-                grid:layout_columnSpan="2" />
+                grid:layout_gravity="fill_horizontal"
+                grid:layout_columnSpan="2"
+                android:text="Sensor" />
+
+            <Button
+                android:id="@+id/testMutable"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                grid:layout_gravity="fill_horizontal"
+                grid:layout_columnSpan="2"
+                android:text="test Mutable"
+                />
 
 <!--            <Button-->
 <!--                android:id="@+id/incomingCallButton"-->

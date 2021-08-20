@@ -17,6 +17,9 @@ package nodomain.freeyourgadget.gadgetbridge.activities;
 
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetManager;
@@ -28,9 +31,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Vibrator;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.MenuItem;
@@ -45,6 +50,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NavUtils;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.RemoteInput;
@@ -134,7 +140,7 @@ public class DebugActivity extends AbstractGBActivity {
     private EditText editContent;
 
 
-    private void test(){
+    private void test() {
         GB.toast("back test", GB.INFO, Toast.LENGTH_LONG);
     }
 
@@ -144,13 +150,13 @@ public class DebugActivity extends AbstractGBActivity {
         if (extra instanceof ActivitySample) {
             ActivitySample sample = (ActivitySample) extra;
             heartRate = sample.getHeartRate();  // 심박수 측정 메소드. int형 반환
-            steps =  sample.getSteps();
+            steps = sample.getSteps();
 
-            if (heartRate > 0){
+            if (heartRate > 0) {
                 test();
             }
 
-            if(steps > -1){
+            if (steps > -1) {
                 prev_total_steps = total_steps;
                 total_steps = steps;
             }
@@ -158,16 +164,16 @@ public class DebugActivity extends AbstractGBActivity {
         return t;
     }
 
-    public static void notifi(Context context){
+    public static void notifi(Context context) {
         new AlertDialog.Builder(context)
-                                .setMessage("Test")
-                                .setPositiveButton("dismiss", new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        GB.toast("pressed", GB.INFO, Toast.LENGTH_LONG);
+                .setMessage("Test")
+                .setPositiveButton("dismiss", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        GB.toast("pressed", GB.INFO, Toast.LENGTH_LONG);
 //                                        flag = false;
-                                    }
-                                }).show();
+                    }
+                }).show();
     }
 
     public class TimeThread extends Thread {
@@ -195,19 +201,8 @@ public class DebugActivity extends AbstractGBActivity {
 
             switch (msg.what) {
                 case 1:
-                    HRvalText.setText("Heart rate: " + heartRate + "bpm");
+                    HRvalText.setText("Heart rate: " + HuamiSupport.HEART_RATE + "bpm");
                     StepText.setText("Steps:" + total_steps);
-//                    if (flag){
-//                        new AlertDialog.Builder(DebugActivity.this)
-//                                .setMessage("Test")
-//                                .setPositiveButton("dismiss", new DialogInterface.OnClickListener() {
-//                                    @Override
-//                                    public void onClick(DialogInterface dialog, int which) {
-//                                        GB.toast("pressed", GB.INFO, Toast.LENGTH_LONG);
-//                                        flag = false;
-//                                    }
-//                                }).show();
-//                    }
                     break;
             }
             return false;
@@ -217,6 +212,41 @@ public class DebugActivity extends AbstractGBActivity {
     TextView HRvalText;
     TextView StepText;
 
+    Handler mHandler;
+    private final String DEFAULT = "DEFAULT";
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    void createNotificationChannel(String channelID, String channelName, int importance) {
+        if (Build.VERSION.SDK_INT >= (Build.VERSION_CODES.BASE - 1)) {
+            NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            notificationManager.createNotificationChannel(new NotificationChannel(channelID, channelName, importance));
+        }
+    }
+
+    void createNotification(String channelID, int id, String title, String text, Intent intent) {
+        PendingIntent pendingIntent = PendingIntent.getActivities(this, 0, new Intent[]{intent}, PendingIntent.FLAG_CANCEL_CURRENT);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelID)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setContentIntent(pendingIntent)
+//                .addAction(R.drawable.ic_launcher_foreground, getString(R.string.action_quit), pendingIntent)
+
+                .setDefaults(Notification.DEFAULT_SOUND /*| Notification.DEFAULT_VIBRATE*/)
+                .setAutoCancel(true);
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.notify(id, builder.build());
+    }
+
+    void destroyNotification(int id) {
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.cancel(id);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -245,7 +275,7 @@ public class DebugActivity extends AbstractGBActivity {
         Button vibrate_test = findViewById(R.id.vibrationButton);
         vibrate_test.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v){
+            public void onClick(View v) {
                 MiBandPreferencesActivity activity = new MiBandPreferencesActivity();
                 NotificationSpec spec = new NotificationSpec();
 //                spec.type = new NotificationType(1, (byte)0x01 );
@@ -270,11 +300,61 @@ public class DebugActivity extends AbstractGBActivity {
             }
         });
 
-        Button testSensorButton = findViewById(R.id.sensorButton);{
+        Button testSensorButton = findViewById(R.id.sensorButton);
+        {
             testSensorButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     testNewFunctionality();
+                }
+            });
+        }
+
+        final boolean[] flag = {false};
+        mHandler = new Handler();
+        createNotificationChannel(DEFAULT, "default channel", NotificationManager.IMPORTANCE_HIGH);
+
+        Intent intent = new Intent(this, ControlCenterv2.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        final Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        Button testMutableButton = findViewById(R.id.testMutable);
+        {
+            testMutableButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    new Thread(new Runnable() {
+
+                        long[] pattern = {500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+                                500, 500, 500, 500, 500, 500, 500, 500, 500, 500};
+
+                        @Override
+                        public void run() {
+//                                LOG.debug("test heart: " + HuamiSupport.HEART_RATE);
+//                                LOG.debug("test step: " + HuamiSupport.STEP);
+                            try {
+                                mHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        createNotification(DEFAULT, 1, "운동하세요", "어깨 돌리기 10회 이상 실시!", intent);
+                                    }
+                                });
+
+                                Thread.sleep(1000);
+                                vibrator.vibrate(pattern, -1);
+
+
+                                if (HuamiSupport.STEP >= 10) {
+                                    destroyNotification(1);
+                                }
+
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
                 }
             });
         }

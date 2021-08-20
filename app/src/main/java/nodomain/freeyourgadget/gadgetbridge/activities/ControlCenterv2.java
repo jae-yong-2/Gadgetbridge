@@ -246,7 +246,15 @@ public class ControlCenterv2 extends AppCompatActivity
             GBApplication.deviceService().requestDeviceInfo();
         }
 
-        //added
+        /**-------------------------------------------**/
+        /**
+         * added for lab research
+         * Algorithm    : when heart rate is measured, it is considered user is wearing the device
+         *              TODO: 1. Send notification to user when there is no heart rate measurement for specific time
+         *                    2. Make notification when there is no movement for specific time (realtime heart rate is measured)
+         *                    3. When notified for exercise and measured HuamiSupport.STEP >= 10, destroy notification
+         *                    4. When user is moving (that is HuamiSupport.STEP > 0), reset the timer
+         */
         final boolean[] flag = {false};
         mHandler = new Handler();
         createNotificationChannel(DEFAULT, "default channel", NotificationManager.IMPORTANCE_HIGH);
@@ -254,15 +262,12 @@ public class ControlCenterv2 extends AppCompatActivity
         Intent intent = new Intent(this, ControlCenterv2.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
-
         new Thread(new Runnable() {
             int count = 0;
             int total_step = 0;
 
-
             @Override
             public void run() {
-
                 while (true) {
                     LOG.debug("test heart: " + HuamiSupport.HEART_RATE);
                     LOG.debug("test step: " + HuamiSupport.STEP);
@@ -280,7 +285,7 @@ public class ControlCenterv2 extends AppCompatActivity
                         }
                     }
 
-                    if(HuamiSupport.STEP >= 10){
+                    if(HuamiSupport.STEP > 10){
                         destroyNotification(1956);
                     }
 
@@ -293,8 +298,6 @@ public class ControlCenterv2 extends AppCompatActivity
             }
         }).start();
     }
-
-
 
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -315,9 +318,8 @@ public class ControlCenterv2 extends AppCompatActivity
                 .setContentText(text)
                 .setContentIntent(pendingIntent)
 //                .addAction(R.drawable.ic_launcher_foreground, getString(R.string.action_quit), pendingIntent)
-
-                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE)
-                .setAutoCancel(true);
+//                .setAutoCancel(true)
+                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE);
 
         NotificationManager notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         notificationManager.notify(id, builder.build());
