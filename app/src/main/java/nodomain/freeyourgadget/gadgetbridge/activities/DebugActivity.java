@@ -358,6 +358,19 @@ public class DebugActivity extends AbstractGBActivity {
                 }
             });
         }
+        Button sendEmail = findViewById(R.id.sendEmail);
+        sendEmail.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent email = new Intent(Intent.ACTION_SEND);
+                email.setType("plain/text");
+                String[] address = {"ljy9805@gmail.com"};
+                email.putExtra(Intent.EXTRA_EMAIL, address);
+                email.putExtra(Intent.EXTRA_SUBJECT, "Daily Report");
+                email.putExtra(Intent.EXTRA_TEXT, "하루동안 알람을 받은 횟수는 몇회입니까?\n1. 0~2회 \n2.3~4회\n5회이상\n\n실험을 하면서 기능적으로 문제가 되었던 부분이 있으면 작성해주세요.");
+                startActivity(email);
+            }
+        });
 
 //
 //        Button incomingCallButton = findViewById(R.id.incomingCallButton);
