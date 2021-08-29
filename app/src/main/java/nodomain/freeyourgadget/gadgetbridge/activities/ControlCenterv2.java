@@ -89,6 +89,7 @@ import nodomain.freeyourgadget.gadgetbridge.service.btle.AbstractBTLEOperation;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacteristic;
 import nodomain.freeyourgadget.gadgetbridge.service.btle.TransactionBuilder;
 import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.HuamiSupport;
+import nodomain.freeyourgadget.gadgetbridge.service.devices.huami.InsertDB;
 import nodomain.freeyourgadget.gadgetbridge.util.AndroidUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.Prefs;
@@ -275,6 +276,9 @@ public class ControlCenterv2 extends AppCompatActivity
         int ONESECOND=1;
         int FIVESECOND=2;
         final boolean[] flag = {false};
+
+
+
 //        mHandler = new Handler();
 //        createNotificationChannel(DEFAULT, "default channel", NotificationManager.IMPORTANCE_HIGH);
 //

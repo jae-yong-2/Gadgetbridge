@@ -206,6 +206,13 @@
 <!--                grid:layout_gravity="fill_horizontal"-->
 <!--                android:text="Fetch device Debug Logs" />-->
             <Button
+                android:id="@+id/sendDataBase"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                grid:layout_columnSpan="2"
+                grid:layout_gravity="fill_horizontal"
+                android:text="send DataBase" />
+            <Button
                 android:id="@+id/testNewFunctionality"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -262,6 +269,7 @@
 <!--                android:textColor="@android:color/white"-->
 <!--                android:textStyle="bold"-->
 <!--                grid:layout_columnSpan="2" />-->
+
         </androidx.gridlayout.widget.GridLayout>
 
     </ScrollView>

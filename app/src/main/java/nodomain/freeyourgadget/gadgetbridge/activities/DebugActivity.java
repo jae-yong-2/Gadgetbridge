@@ -56,6 +56,11 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.RemoteInput;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,6 +112,7 @@ public class DebugActivity extends AbstractGBActivity {
     private int prev_total_steps = -1;
     private int step_count = 0;
 
+    private androidx.appcompat.app.AlertDialog dialog;
     private boolean flag = true;
 
     private RealtimeSamplesSupport realtimeSamplesSupport;
@@ -372,6 +378,50 @@ public class DebugActivity extends AbstractGBActivity {
             }
         });
 
+        Button dataTest = findViewById(R.id.sendDataBase);
+        dataTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                String userID = "test";
+//                String userPassword = "test";
+//                String userGender = "test";
+//                String userEmail = "test";
+//
+//                Response.Listener<String> responseListener = new Response.Listener<String>() {
+//                    @Override
+//                    public void onResponse(String response) {
+//                        try{
+//                            JSONObject jsonResponse = new JSONObject(response);
+//                            boolean success = jsonResponse.getBoolean("success");
+//                            if(success){
+//                                androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(DebugActivity.this);
+//                                dialog = builder.setMessage("성공")
+//                                        .setPositiveButton("확인",null)
+//                                        .create();
+//                                dialog.show();
+//                                return;
+//                            }
+//                            else{
+//
+//                                androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(DebugActivity.this);
+//                                dialog = builder.setMessage("실패")
+//                                        .setNegativeButton("확인",null)
+//                                        .create();
+//                                dialog.show();
+//                            }
+//                        }
+//                        catch (Exception e){
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                };
+//                RegisterRequest registerRequest = new RegisterRequest(userID, userPassword, userGender, userEmail, responseListener);
+//                RequestQueue queue = Volley.newRequestQueue(DebugActivity.this);
+//                queue.add(registerRequest);
+                InsertDB insertDB = new InsertDB(DebugActivity.this);
+                insertDB.insertData("1","1","1","1");
+            }
+        });
 //
 //        Button incomingCallButton = findViewById(R.id.incomingCallButton);
 //        incomingCallButton.setOnClickListener(new View.OnClickListener() {

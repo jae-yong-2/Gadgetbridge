@@ -184,6 +184,7 @@ import static nodomain.freeyourgadget.gadgetbridge.service.btle.GattCharacterist
 public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
     // We introduce key press counter for notification purposes
+    InsertDB insert =new InsertDB(getContext());
     private static int currentButtonActionId = 0;
     private static int currentButtonPressCount = 0;
     private static long currentButtonPressTime = 0;
@@ -2055,6 +2056,8 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         @Override
         public void run() {
 
+            insert.insertData(stepTimer+"",HuamiSupport.HEART_RATE+"",HuamiSupport.TOTAL_STEP+"",(HuamiSupport.TOTAL_STEP - beforeStep)+"");
+            LOG.debug("insert Debug : "+ stepTimer+""+HuamiSupport.HEART_RATE+""+HuamiSupport.TOTAL_STEP+""+(HuamiSupport.TOTAL_STEP - beforeStep)+"");
 
             switch (MUTABILITY) {           //실험 대상군 설정
                 case 0:
@@ -3370,6 +3373,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         onEnableRealtimeSteps(true);
         onEnableGetSensorData(true);
         timer.schedule(Task, 0, 1000);
+
     }
 
 
