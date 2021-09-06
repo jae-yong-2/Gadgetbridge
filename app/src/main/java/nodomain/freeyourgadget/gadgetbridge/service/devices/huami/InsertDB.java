@@ -1,7 +1,6 @@
 package nodomain.freeyourgadget.gadgetbridge.service.devices.huami;
 
 import android.content.Context;
-import android.widget.Toast;
 
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -11,29 +10,29 @@ import org.json.JSONObject;
 
 public class InsertDB {
     private androidx.appcompat.app.AlertDialog dialog;
-    String userID = "test1";
-    String userPassword = "test";
-    String userGender = "test";
-    String userEmail = "test";
+    String time = "test1";
+    String heartrate = "test";
+    String totalstep = "test";
+    String realtimestep = "test";
     Context context;
 
 
-    InsertDB(String userID, String userPassword, String userGender, String userEmail, Context context) {
-        this.userID = userID;
-        this.userPassword = userPassword;
-        this.userGender = userGender;
-        this.userEmail = userEmail;
+    InsertDB(String time, String heartrate, String totalstep, String realtimestep, Context context) {
+        this.time = time;
+        this.heartrate = heartrate;
+        this.totalstep = totalstep;
+        this.realtimestep = realtimestep;
         this.context = context;
     }
     InsertDB(Context context) {
         this.context=context;
     }
 
-    public void insertData(String userID, String userPassword, String userGender, String userEmail) {
-        this.userID = userID;
-        this.userPassword = userPassword;
-        this.userGender = userGender;
-        this.userEmail = userEmail;
+    public void insertData(String time, String heartrate, String totalstep, String realtimestep) {
+        this.time = time;
+        this.heartrate = heartrate;
+        this.totalstep = totalstep;
+        this.realtimestep = realtimestep;
         Response.Listener<String> responseListener = new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
@@ -41,17 +40,15 @@ public class InsertDB {
                     JSONObject jsonResponse = new JSONObject(response);
                     boolean success = jsonResponse.getBoolean("success");
                     if (success) {
-                                Toast.makeText(context, "성공",Toast.LENGTH_SHORT);
+//                                Toast.makeText(context, "성공",Toast.LENGTH_SHORT);
                         return;
-//                    } else {
-//
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         };
-        RegisterRequest registerRequest = new RegisterRequest(userID, userPassword, userGender, userEmail, responseListener);
+        RegisterRequest registerRequest = new RegisterRequest(time, heartrate, totalstep, realtimestep, responseListener);
         RequestQueue queue = Volley.newRequestQueue(context);
         queue.add(registerRequest);
     }
