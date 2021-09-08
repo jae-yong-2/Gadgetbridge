@@ -19,11 +19,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package nodomain.freeyourgadget.gadgetbridge.service.devices.huami;
 
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
@@ -64,7 +62,6 @@ import cyanogenmod.weather.util.WeatherUtils;
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.Logging;
 import nodomain.freeyourgadget.gadgetbridge.R;
-import nodomain.freeyourgadget.gadgetbridge.activities.ControlCenterv2;
 import nodomain.freeyourgadget.gadgetbridge.activities.SettingsActivity;
 import nodomain.freeyourgadget.gadgetbridge.database.DBHandler;
 import nodomain.freeyourgadget.gadgetbridge.database.DBHelper;
@@ -1814,7 +1811,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("realtime steps: " + steps);
             }
-            TOTAL_STEP=steps;
+            TOTAL_STEP = steps;
             getRealtimeSamplesSupport().setSteps(steps);
         } else {
             LOG.warn("Unrecognized realtime steps value: " + Logging.formatBytes(value));
@@ -1918,7 +1915,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 //                        LOG.debug("SENSOR READ FAIL");
 //                    }
                     // added for realtime heart rate measure
-                    if(!HuamiSupport.super.isConnected()){
+                    if (!HuamiSupport.super.isConnected()) {
                         System.exit(0);
                     }
                     try {
@@ -2038,22 +2035,30 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
     private int beforeStep = 0;
     private int step = 0;
-    public static int start = -1;
-    public static int TOTAL_STEP=0;
+    public static int vibrationAlramControl = -1;
+    public static int TOTAL_STEP = 0;
+
     private void handleDeviceName(byte[] value, int status) {
 //        if (status == BluetoothGatt.GATT_SUCCESS) {
 //            versionCmd.hwVersion = new String(value);
 //            handleGBDeviceEvent(versionCmd);
 //        }
     }
-////////////////////////////////////////-->캐이스 3가지 알고리즘
-    int MUTABILITY=0;
-    int ONESECOND=1;
-    int FIVESECOND=2;
-    int b_step=0;
-    public static int SEND_DATA=1;     //if 0 call message else if 1 nothing 알람창
-    int stepTimer = -10;
-    int resetTime=600;                  //타이머 주기 초단위 -->ex) 60이면 60초
+
+    ////////////////////////////////////////-->캐이스 3가지 알고리즘
+    final int MUTABILITY = 0;
+    final int ONE_SECOND = 1;
+    final int FIVE_SECOND = 2;
+    int cases = -1;
+    //케이스
+//    int MUTABILITY=0;         --> 진동 직접 제어
+//    int ONESECOND=1;          --> 한번만 울리기
+//    int FIVESECOND=2;         --> 다섯번 울리기
+
+    int b_step = 0;           //디비 서버 관련 사용하는 beforestep
+    public static int SEND_DATA = 1;     //if 0 call message else if 1 nothing 알람창
+    int stepTimer = -5;
+    int resetTime = 600;                  //타이머 주기 초단위 -->ex) 60이면 60초
     final Timer timer = new Timer();
     TimerTask Task = new TimerTask() {
         @Override
@@ -2064,61 +2069,52 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
             String getTime = dateFormat.format(date);
 
             InsertDB insert = new InsertDB(getContext());
-            insert.insertData(getTime+"",HuamiSupport.HEART_RATE+"",HuamiSupport.TOTAL_STEP+"",(HuamiSupport.TOTAL_STEP - b_step)+"");
+            if (stepTimer > 0)
+                insert.insertData(getTime + "", HuamiSupport.HEART_RATE + "", HuamiSupport.TOTAL_STEP + "", (HuamiSupport.TOTAL_STEP - b_step) + "");
 //            LOG.debug("insert Debug : "+ stepTimer+""+HuamiSupport.HEART_RATE+""+HuamiSupport.TOTAL_STEP+""+(HuamiSupport.TOTAL_STEP - beforeStep)+"");
 
-            LOG.debug("check Activity "+stepTimer+" : "+HuamiSupport.HEART_RATE+"  "+HuamiSupport.TOTAL_STEP +" "+(HuamiSupport.TOTAL_STEP - b_step));
-            b_step=HuamiSupport.TOTAL_STEP;
-            LOG.debug("check Activity "+ insert);
-            switch (MUTABILITY) {           //실험 대상군 설정
-                case 0:
+            LOG.debug("check Activity " + stepTimer + " : " + HuamiSupport.HEART_RATE + "  " + HuamiSupport.TOTAL_STEP + " " + (HuamiSupport.TOTAL_STEP - b_step));
+            b_step = HuamiSupport.TOTAL_STEP;
+            LOG.debug("check Activity " + insert);
+            switch (cases) {           //실험 대상군 설정
+                case MUTABILITY:
                     LOG.debug("test heart: " + HuamiSupport.HEART_RATE);
                     LOG.debug("test step: " + HuamiSupport.STEP);
 
                     if (HuamiSupport.HEART_RATE > 0) {  // 심장 박동 감지 됨
                         stepTimer++;
-                        LOG.debug("check Activity "+getTime);
+                        LOG.debug("check Activity " + getTime);
                         if (stepTimer == -1) {
                             beforeStep = HuamiSupport.TOTAL_STEP;
                         }
 
 
-
                         if (stepTimer == 0) {
 
 
-                        }else if (stepTimer < 40) {                     //40초 이내로 10회 이상 걸으면 종료
-                            SEND_DATA=1;                                //푸쉬 알람 뜨게하기 --> 0 이면 푸쉬알람옴 1이면 푸쉬알람 안옴
-                            if (HuamiSupport.TOTAL_STEP-beforeStep > 10) {
-                               start=1;                                 //start 1이면 울릴수 없는 상태
+                        } else if (stepTimer < 40) {                     //40초 이내로 10회 이상 걸으면 종료
+                            SEND_DATA = 1;                                //푸쉬 알람 뜨게하기 --> 0 이면 푸쉬알람옴 1이면 푸쉬알람 안옴
+                            if (HuamiSupport.TOTAL_STEP - beforeStep > 10) {
+                                vibrationAlramControl = 1;                                 //start 1이면 울릴수 없는 상태
                             }
-                        }
-
-
-
-                        else if(stepTimer==40){             //알람 강제 종료 시간
-                            start=1;
+                        } else if (stepTimer == 40) {             //알람 강제 종료 시간
+                            vibrationAlramControl = 1;                        //전역 변수 start 0이면 알람이 울릴수 있음 1이면 울릴수 없음--> vibration timer에서 관리
                             //알람창 뜬느거 초기화
                             beforeStep = HuamiSupport.TOTAL_STEP;       //40초 이후에서 다음 알람 비교 시간까지 step수 차이 구하기 위해 저장
-                        }
-
-
-
-                        else if (stepTimer == resetTime) {                 //주기
-                            start = 0;                                  //알람이 울릴수 있는 상태
+                        } else if (stepTimer == resetTime) {                 //주기
+                            vibrationAlramControl = 0;                                  //알람이 울릴수 있는 상태
 
                             if (beforeStep != 0 && HuamiSupport.TOTAL_STEP - beforeStep < 10) {        //이전과 비교해서 걸음수 체크
                                 //muteability
-                                SEND_DATA=0;
-                                vibration_timer(1,1,MUTABILITY);
+                                SEND_DATA = 0;
+                                vibration_timer(1, 1, MUTABILITY);
                             }
 
                             beforeStep = HuamiSupport.TOTAL_STEP;                   //스텝수 저장
                             stepTimer = -1;
                         }
 
-
-                        LOG.debug(""+SEND_DATA);
+                        LOG.debug("" + SEND_DATA);
 
 //                                                    if (count < 1) {
 //                                                        mHandler.post(new Runnable() {
@@ -2133,20 +2129,18 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 
                     break;
 
-                case 1:
-                    checkActivity(1,1,ONESECOND);                  //진동 한번만 울리는 케이스
+                case ONE_SECOND:
+                    checkActivity(1, 1, ONE_SECOND);                  //진동 한번만 울리는 케이스
                     break;
-                case 2:
-                    checkActivity(1,1,FIVESECOND);                  //진동 다섯번 울리는 케이스
+                case FIVE_SECOND:
+                    checkActivity(1, 1, FIVE_SECOND);                  //진동 다섯번 울리는 케이스
                     break;
             }
         }
     };
 
 
-
-
-    private void vibration_timer(int period, final int time,int casenum) {
+    private void vibration_timer(int period, final int time, int casenum) {
         final Timer timer = new Timer();
         TimerTask Task = new TimerTask() {
             int cnt = 0;                        //시간설정
@@ -2156,22 +2150,22 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
                 switch (casenum) {
                     case 0:
                         vibrateOnce();
-                        if(start==1){
+                        if (vibrationAlramControl == 1) {
                             timer.cancel();
                         }
                         break;
                     case 1:
                         vibrateOnce();
                         cnt++;
-                        if (cnt==1) {
-                            cnt=0;
+                        if (cnt == 1) {
+                            cnt = 0;
                             timer.cancel();
                         }
                     case 2:
                         vibrateOnce();
                         cnt++;
-                        if (cnt==5) {
-                            cnt=0;
+                        if (cnt == 5) {
+                            cnt = 0;
                             timer.cancel();
                         }
                 }
@@ -2179,9 +2173,10 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         };
         timer.schedule(Task, 0, period * 1500);
     }
+
     void checkActivity(int period, int time, int casenum) {     //주기별 task설정
-        LOG.debug("check Activity "+stepTimer+" : "+HuamiSupport.HEART_RATE+"  "+HuamiSupport.TOTAL_STEP +" "+(HuamiSupport.TOTAL_STEP - beforeStep));
-        if(HuamiSupport.HEART_RATE > 40) {
+        LOG.debug("check Activity " + stepTimer + " : " + HuamiSupport.HEART_RATE + "  " + HuamiSupport.TOTAL_STEP + " " + (HuamiSupport.TOTAL_STEP - beforeStep));
+        if (HuamiSupport.HEART_RATE > 40) {
             stepTimer++;
             if (stepTimer == -1) {
                 beforeStep = HuamiSupport.TOTAL_STEP;
@@ -2193,13 +2188,13 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
 //                    start = 1;
 //                }
             } else if (stepTimer == 30) {                 //알람 종료
-                start = 1;
+                vibrationAlramControl = 1;
                 beforeStep = HuamiSupport.TOTAL_STEP;
             } else if (stepTimer == resetTime) {                 //주기
-                start = 0;
+                vibrationAlramControl = 0;
 
                 if (beforeStep != 0 && HuamiSupport.TOTAL_STEP - beforeStep < 10) {        //이전과 비교해서 걸음수 체크
-                    vibration_timer(period,time,casenum);
+                    vibration_timer(period, time, casenum);
                 }
                 beforeStep = HuamiSupport.TOTAL_STEP;
                 stepTimer = -1;
@@ -2208,10 +2203,7 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
     }
 
 
-
 ////////////////////////////////////////////////
-
-
 
 
     /**
@@ -3391,9 +3383,6 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         timer.schedule(Task, 0, 1000);
 
     }
-
-
-
 
 
     //added
